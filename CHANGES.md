@@ -1,9 +1,10 @@
-# macOS-defaults CHANGES
+# mac-defaults CHANGES
 
-## 2.0.0 (UNRELEASED)
+## 2.0.0
 
 ### User-facing
 
+- Breaking change: Switch to native ESM
 - Breaking change: Switch to named export (and refactor internally from
     `macOSdefault` to `macOSDefaults`)
 - Breaking change: Complete new API (Promises for async)

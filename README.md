@@ -1,9 +1,9 @@
-# macOS-defaults
+# mac-defaults
 
 ## Installation
 
 ```
-npm i macos-defaults
+npm i mac-defaults
 ```
 
 ## `MacOSDefaults` usage
@@ -15,12 +15,12 @@ will return the results synchronously.
 The methods of the `MacOSDefaults` class accept either a single object
 argument signature or an extended form.
 
-For more on the specifics, see the [API docs](https://rawgit.com/tarranjones/macOS-defaults/master/docs/jsdoc/macos-defaults/1.0.1/module-MacOSDefaults-MacOSDefaults.html).
+For more on the specifics, see the [API docs](https://rawgit.com/brettz9/mac-defaults/master/docs/jsdoc/mac-defaults/1.0.1/module-MacOSDefaults-MacOSDefaults.html).
 
 ### read (synchronous)
 
 ```js
-const {MacOSDefaults} = require('macOS-defaults');
+const {MacOSDefaults} = require('mac-defaults');
 const mod = new MacOSDefaults({sync: true});
 
 const arrayOfPaths = mod.read('com.apple.finder', 'GoToFieldHistory');
@@ -35,7 +35,7 @@ console.log(arrayOfPaths);
 ```js
 (async () => {
 
-const {MacOSDefaults} = require('macOS-defaults');
+const {MacOSDefaults} = require('mac-defaults');
 const mod = new MacOSDefaults();
 
 const arrayOfPaths = await mod.read('com.apple.finder', 'GoToFieldHistory');
@@ -160,61 +160,61 @@ const resultXML = await mod.export({domain: 'com.apple.finder', plist: '-'});
 ### `jsToPropertyListXML`
 
 ```js
-const {jsToPropertyListXML} = require('macOS-defaults');
+const {jsToPropertyListXML} = require('mac-defaults');
 ```
 
 Builds a property list XML string.
 
-See [the API](https://rawgit.com/tarranjones/macOS-defaults/master/docs/jsdoc/macos-defaults/1.0.1/module-MacOSDefaults.html#.jsToPropertyListXML) for usage.
+See [the API](https://rawgit.com/brettz9/mac-defaults/master/docs/jsdoc/mac-defaults/1.0.1/module-MacOSDefaults.html#.jsToPropertyListXML) for usage.
 
 ### `jsToAsciiPropertyList`
 
 ```js
-const {jsToAsciiPropertyList} = require('macOS-defaults');
+const {jsToAsciiPropertyList} = require('mac-defaults');
 ```
 
 Accepts JavaScript or JSON object with string, number, array, Uint8Arrays, or objects and converts to an old-style ASCII property list.
 
-See [the API](https://rawgit.com/tarranjones/macOS-defaults/master/docs/jsdoc/macos-defaults/1.0.1/module-MacOSDefaults.html#.jsToAsciiPropertyList) for usage.
+See [the API](https://rawgit.com/brettz9/mac-defaults/master/docs/jsdoc/mac-defaults/1.0.1/module-MacOSDefaults.html#.jsToAsciiPropertyList) for usage.
 
 ### `parseFindResults`
 
 ```js
-const {parseFindResults} = require('macOS-defaults');
+const {parseFindResults} = require('mac-defaults');
 ```
 
 Accepts a string in the non-exclusively-Property-List results format returned by
 `defaults find` along with a `json` option on whether to return JSON arrays
 instead of `Uint8Array`s.
 
-See [the API](https://rawgit.com/tarranjones/macOS-defaults/master/docs/jsdoc/macos-defaults/1.0.1/module-MacOSDefaults.html#.parseFindResults) for usage.
+See [the API](https://rawgit.com/brettz9/mac-defaults/master/docs/jsdoc/mac-defaults/1.0.1/module-MacOSDefaults.html#.parseFindResults) for usage.
 
 ## Other files
 
 ### `PlistParser.js`
 
 ```js
-const parser = require('macOS-defaults/PlistParser')
+const parser = require('mac-defaults/PlistParser')
 ```
 
 The class used internally by `MacOSDefaults` to parse old-style ASCII property lists.
 
-See [the API](https://rawgit.com/tarranjones/macOS-defaults/master/docs/jsdoc/macos-defaults/1.0.1/module-PlistParser-PlistParser.html) for usage.
+See [the API](https://rawgit.com/brettz9/mac-defaults/master/docs/jsdoc/mac-defaults/1.0.1/module-PlistParser-PlistParser.html) for usage.
 
 ### `getParsedIORegInfo.js`
 
 ```js
-const getParsedIORegInfo = require('macOS-defaults/getParsedIORegInfo')
+const getParsedIORegInfo = require('mac-defaults/getParsedIORegInfo')
 ```
 
 Allows parsing results from `ioreg -rd1 -c IOPlatformExpertDevice` (used in
 [test/test.js](./test/test.js) to get the user's host).
 
-See [the API](https://rawgit.com/tarranjones/macOS-defaults/master/docs/jsdoc/macos-defaults/1.0.1/module-getParsedIORegInfo.html) for usage.
+See [the API](https://rawgit.com/brettz9/mac-defaults/master/docs/jsdoc/mac-defaults/1.0.1/module-getParsedIORegInfo.html) for usage.
 
 ## Documentation
 
-See [the API](https://rawgit.com/tarranjones/macOS-defaults/master/docs/jsdoc/macos-defaults/1.0.1/index.html).
+See [the API](https://rawgit.com/brettz9/mac-defaults/master/docs/jsdoc/mac-defaults/1.0.1/index.html).
 
 For extended examples, see [test/test.js](./test/test.js)
 
