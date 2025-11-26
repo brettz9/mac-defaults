@@ -1,8 +1,7 @@
-ignore
+.idea
 test
 coverage
 docs
 jsdoc.conf.json
-typedefs.js
 eslint.config.js
 

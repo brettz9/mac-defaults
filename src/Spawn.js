@@ -1,23 +1,35 @@
+/* eslint-disable n/no-sync -- API */
+/* eslint-disable sonarjs/os-command -- API */
+/* eslint-disable no-console -- Show results */
 import {spawn, spawnSync} from 'node:child_process';
 import getStream from 'get-stream';
 
-/* eslint-disable no-console */
+/**
+ *
+ */
 class Spawn {
   /**
    * @param {object} [cfg]
-   * @param {boolean} [cfg.debug=false] Whether to merely return the query rather than execute it
-   * @param {boolean} [cfg.log=false] Whether to log steps to console
-   * @param {boolean} [cfg.sync=false] Whether to use the synchronous API
+   * @param {boolean} [cfg.debug] Whether to merely return the
+   *   query rather than execute it
+   * @param {boolean} [cfg.log] Whether to log steps to console
+   * @param {boolean} [cfg.sync] Whether to use the synchronous API
    */
   constructor ({debug, log, sync} = {}) {
-    Object.assign(this, {debug, log, sync});
+    this.debug = debug;
+    this.log = log;
+    this.sync = sync;
   }
   /**
-  * @param {object} [opts]
-  * @param {...*} args
-  * @throws {Error}
-  * @returns {string|Promise} Return value depends on whether `sync` set on the object
-  */
+   * @param {{
+   *   stream?: import('node:stream').Readable | undefined;
+   *   cmd: string
+   * }} opts
+   * @param {...*} args
+   * @throws {Error}
+   * @returns {string|Promise<string>} Return value depends on whether
+   *   `sync` set on the object
+   */
   spawn (opts, ...args) {
     if (this.sync) {
       return this.spawnSync(opts, ...args);
@@ -26,30 +38,35 @@ class Spawn {
   }
   /**
   * @param {object} cfg
-  * @param {stream.Readable} [cfg.stream]
+  * @param {import('node:stream').Readable|{input: string}} [cfg.stream]
   * @param {string} cfg.cmd The main command to execute
   * @param {...*} args
-  * @returns {string} Provides stdout from the spawned process; rejects with an `Error` object set to the stderr or `error` property of `spawnSync`
+  * @returns {string|Promise<string>} Provides stdout from the spawned process;
+  *   rejects with an `Error` object set to the stderr or `error`
+  *   property of `spawnSync`
   */
   spawnSync ({cmd, stream}, ...args) {
-    if (this.debug){
-      const command  = cmd + ' '+ args.join(' ');
+    if (this.debug) {
+      const command = cmd + ' ' + args.join(' ');
       console.log(command);
       return command;
     }
-    const opts = {shell: true, encoding: 'utf-8'};
+    /** @type {{input?: string, shell: boolean, encoding: "utf8"}} */
+    const opts = {shell: true, encoding: 'utf8'};
     const spawnProcess = () => {
       if (this.log) {
         console.log('args', args);
       }
       const proc = spawnSync(cmd, args, opts);
       if (proc.error) {
-        const err = new Error(proc.error);
+        const err = /** @type {Error & {code?: number|null}} */ (proc.error);
         err.code = proc.status;
         throw err;
       }
       if (proc.status && proc.stderr) {
-        const err = new Error(proc.stderr);
+        const err = /** @type {Error & {code?: number|null}} */ (
+          new Error(proc.stderr)
+        );
         err.code = proc.status;
         throw err;
       }
@@ -57,36 +74,46 @@ class Spawn {
     };
     if (stream) {
       if ('pipe' in stream) { // A real stream
+        // eslint-disable-next-line @stylistic/max-len -- Long
+        // eslint-disable-next-line promise/prefer-await-to-then -- Otherwise sync
         return getStream(stream).then((input) => {
           opts.input = input;
           return spawnProcess();
         });
       }
+
       opts.input = stream.input;
-      // opts.stdio = [stream, 'pipe', 'pipe']; // Doesn't work as we can't close it subsequently (being synchronous)
+      // Doesn't work as we can't close it subsequently (being synchronous)
+      // opts.stdio = [stream, 'pipe', 'pipe'];
     }
     return spawnProcess();
   }
   /**
   * @param {object} cfg
   * @param {string} cfg.cmd The main command to execute
-  * @param {stream.Readable} [cfg.stream]
-  * @param {boolean} [cfg.addStdin=false]
+  * @param {import('node:stream').Readable} [cfg.stream]
+  * @param {boolean} [cfg.addStdin]
   * @param {...*} args
   * @throws {Error}
-  * @returns {Promise} Resolves with stdout and rejects with an `Error` object set to the stderr or with the event of a `spawn` `error` event
+  * @returns {Promise<string>} Resolves with stdout and rejects with an
+  *   `Error` object set to the stderr or with the event of a
+  *   `spawn` `error` event
   */
   spawnAsync ({cmd, stream, addStdin}, ...args) {
     if (this.debug) {
-      const command = cmd + ' '+ args.join(' ');
+      const command = cmd + ' ' + args.join(' ');
       console.log(command);
       return Promise.resolve(command);
     }
+
+    // eslint-disable-next-line promise/avoid-new -- Promisify?
     return new Promise((resolve, reject) => {
       if (this.log) {
         console.log('args', args);
       }
-      const def = spawn(cmd, args, {shell: true}); // , stdio: ['pipe', 'pipe', 'pipe']});
+      const def = spawn(
+        cmd, args, {shell: true}
+      ); // , stdio: ['pipe', 'pipe', 'pipe']});
       // console.log('args', args);
 
       let stdout = '';
@@ -103,7 +130,8 @@ class Spawn {
       def.on('error', (err) => {
         reject(err);
       });
-      // Todo: Or do we want `exit` which waits for stdio to finish regardless if shared with other processes?
+      // Todo: Or do we want `exit` which waits for stdio to
+      //   finish regardless if shared with other processes?
       def.on('close', (code) => {
         // Todo: Could there be a `stderr` here?
         if (stderr) {
@@ -111,7 +139,9 @@ class Spawn {
           return;
         }
         if (code) {
-          const err = new Error(`child process exited with code ${code}`);
+          const err = /** @type {Error & {stderr: string, code: number}} */ (
+            new Error(`child process exited with code ${code}`)
+          );
           err.stderr = stderr;
           err.code = code;
           reject(err);
@@ -124,8 +154,11 @@ class Spawn {
         stream = process.stdin;
       }
       if (stream) {
-        if ('input' in stream) { // Not a real stream
-          def.stdin.setEncoding('utf-8');
+        if ('input' in stream &&
+          'setEncoding' in def.stdin &&
+          typeof def.stdin.setEncoding === 'function'
+        ) { // Not a real stream
+          def.stdin.setEncoding('utf8');
           def.stdin.write(stream.input);
           def.stdin.end();
           return;
@@ -133,7 +166,14 @@ class Spawn {
         // Wait to see if a public API is made available out
         //   of https://github.com/nodejs/node/issues/445
         // console.log('st', stream);
-        if (stream._readableState && stream._readableState.encoding) {
+        if ('_readableState' in stream &&
+          stream._readableState &&
+          typeof stream._readableState === 'object' &&
+          'encoding' in stream._readableState &&
+          stream._readableState.encoding &&
+          'setEncoding' in def.stdin &&
+          typeof def.stdin.setEncoding === 'function'
+        ) {
           def.stdin.setEncoding(stream._readableState.encoding);
         }
         stream.on('data', (data) => {

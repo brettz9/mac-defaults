@@ -19,11 +19,11 @@
 
     <h1 class="page-title">Source: index.js</h1>
 
-    
 
 
 
-    
+
+
     <section>
         <article>
             <pre class="prettyprint source linenums"><code>/* eslint-disable no-console */
@@ -915,7 +915,7 @@ class MacOSDefaults {
       console.log(command);
       return command;
     }
-    const opts = {shell: true, encoding: 'utf-8'};
+    const opts = {shell: true, encoding: 'utf8'};
     const spawnProcess = () => {
       if (this.log) {
         console.log('args', args);
@@ -1115,7 +1115,7 @@ class MacOSDefaults {
     if (this.log) {
       console.log('args', args);
     }
-    const proc = spawnSync('defaults', args, {shell: true, encoding: 'utf-8'});
+    const proc = spawnSync('defaults', args, {shell: true, encoding: 'utf8'});
     if (proc.error) {
       const err = new Error(proc.error);
       err.code = proc.status;

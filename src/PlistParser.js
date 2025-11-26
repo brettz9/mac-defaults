@@ -1,71 +1,95 @@
+/* eslint-disable no-shadow -- For now */
 // Todo: Compare with https://github.com/chobie/php-plist/blob/master/plist.php
 // Todo: Handle comments within as per the above?
 // Todo: Support optional date parsing
 
 /** @module PlistParser */
 
+/**
+ * @typedef {number} Integer
+ */
+
+/**
+ * @typedef {[Record<string, any>, number]} CurrentParent
+ */
+
+/**
+ *
+ */
 class PlistParser {
   /**
   * @param {object} cfg
   * @param {string} cfg.plist
-  * @param {boolean} cfg.hexAsArrays
-  * @param {boolean} cfg.allowAngledBracketStrings
-  * @param {boolean} cfg.allowUnquotedStringsAtRoot
-  * @param {boolean} cfg.allowMissingSeparators
+  * @param {boolean} [cfg.hexAsArrays]
+  * @param {boolean} [cfg.allowAngledBracketStrings]
+  * @param {boolean} [cfg.allowUnquotedStringsAtRoot]
+  * @param {boolean} [cfg.allowMissingSeparators]
   */
-  constructor ({plist, hexAsArrays, allowAngledBracketStrings, allowUnquotedStringsAtRoot, allowMissingSeparators}) {
-    this.i = 0;
+  constructor ({
+    plist, hexAsArrays, allowAngledBracketStrings,
+    allowUnquotedStringsAtRoot, allowMissingSeparators
+  }) {
+    /** @type {CurrentParent[]} */
     this.currentParents = [];
-    Object.assign(this, {plist, hexAsArrays, allowAngledBracketStrings, allowUnquotedStringsAtRoot, allowMissingSeparators});
+    this.plist = plist;
+    this.hexAsArrays = hexAsArrays;
+    this.allowAngledBracketStrings = allowAngledBracketStrings;
+    this.allowUnquotedStringsAtRoot = allowUnquotedStringsAtRoot;
+    this.allowMissingSeparators = allowMissingSeparators;
   }
   /**
-  * @returns {DefaultsResult}
+  * @returns {import('./typedefs.js').DefaultsResult}
   */
   start () {
     this.check();
     return this.output;
   }
   /**
-  * @returns {string} The next non-whitespace character or the current one if it is non-whitespace
-  */
+   * @returns {string} The next non-whitespace character or the
+   * current one if it is non-whitespace
+   */
   advanceWhitespace () {
     let ch = this.plist[this.i];
-    while (ch && (/\s/).test(ch)) {
+    while (ch && (/\s/v).test(ch)) {
       ch = this.plist[++this.i];
     }
     return ch;
   }
   /**
   * @throws {Error}
-  * @returns {object|Array} The current parent object or array
+  * @returns {object} The current parent object or array
   */
   getCurrentParent () {
     if (!this.currentParents.length) {
       throw new Error('Unexpected parsing state: no current parent found');
     }
-    return this.currentParents[this.currentParents.length - 1][0];
+    return /** @type {CurrentParent} */ (this.currentParents.at(-1))[0];
   }
   /**
   * @throws {Error}
-  * @returns {Integer} The integer count of how many items have so far been found in the current parent object or array
+  * @returns {Integer} The integer count of how many items have
+  *   so far been found in the current parent object or array
   */
   getCurrentParentItemCount () {
     if (!this.currentParents.length) {
       throw new Error('Unexpected parsing state: no current parent found');
     }
-    return this.currentParents[this.currentParents.length - 1][1];
+    return /** @type {CurrentParent} */ (this.currentParents.at(-1))[1];
   }
   /**
-  * Increment the count of how many items have been found in the current parent object or array
-  */
+   * Increment the count of how many items have been found in the current parent
+   *   object or array.
+   * @returns {void}
+   */
   incrementCurrentParentItemCount () {
-    this.currentParents[this.currentParents.length - 1][1] =
-    (this.getCurrentParentItemCount()) + 1;
+    /** @type {CurrentParent} */ (this.currentParents.at(-1))[1] =
+      (this.getCurrentParentItemCount()) + 1;
   }
   /**
-  * @param {"array"|"dict"} mode
-  * @throws {TypeError}
-  */
+   * @param {"array"|"dict"} mode
+   * @throws {TypeError}
+   * @returns {void}
+   */
   checkParentItemCount (mode) {
     if (this.allowMissingSeparators) {
       return;
@@ -73,7 +97,7 @@ class PlistParser {
     const count = this.getCurrentParentItemCount();
     switch (mode) {
     case 'array': {
-      const len = this.getCurrentParent().length;
+      const len = /** @type {any[]} */ (this.getCurrentParent()).length;
       // console.log('len1', len, count);
       if (count < len) {
         throw new TypeError('Missing comma between array items');
@@ -86,13 +110,17 @@ class PlistParser {
       if (count < len) {
         throw new TypeError('Missing semi-colon between dict items');
       }
+      break;
     }
+    default:
+      break;
     }
   }
 
   /**
-  * @returns {Array} An array of the mode ("firstRun"|"array"|"dict") and the current parent (or `null` if this is the first run)
-  */
+   * @returns {["firstRun"|"array"|"dict", null|object|any[]]} An array of the
+   *   mode and the current parent (or `null` if this is the first run)
+   */
   getModeAndCurrentParent () {
     if (!this.currentParents.length) {
       return ['firstRun', null];
@@ -109,16 +137,16 @@ class PlistParser {
   * @todo Prevent odd count hex at non-root as will be ignored?
   * @throws {RangeError}
   * @throws {TypeError}
-  * @returns {Array|Uint8Array}
+  * @returns {number[]|Uint8Array}
   */
   data () {
     let ch = this.plist[this.i];
     const hex = [];
 
     let hexChr;
-    while (ch && (hexChr = (/\s|([\da-f])/i).exec(ch)) !== null) { // Deliberately case-insensitive
+    while (ch && (hexChr = (/\s|([\da-f])/vi).exec(ch)) !== null) { // Deliberately case-insensitive
       if (hexChr[1]) {
-        hex.push(parseInt(hexChr, 16));
+        hex.push(Number.parseInt(hexChr[1], 16));
       }
       ch = this.plist[++this.i];
     }
@@ -126,7 +154,10 @@ class PlistParser {
       throw new RangeError('Premature end to data (hex)');
     }
     if (ch !== '>') {
-      throw new TypeError('Invalid data (hex) end character: "' + ch + '" after hex string: ' + hex + ' ; offset: ' + this.i);
+      throw new TypeError(
+        'Invalid data (hex) end character: "' + ch +
+          '" after hex string: ' + hex + ' ; offset: ' + this.i
+      );
     }
     this.i++;
     return this.hexAsArrays ? hex : new Uint8Array(hex);
@@ -141,9 +172,10 @@ class PlistParser {
     return obj;
   }
   /**
-  * @returns {Array}
+  * @returns {[]}
   */
   array () {
+    /** @type {[]} */
     const arr = [];
     this.currentParents.push([arr, 0]);
     this.check();
@@ -170,12 +202,14 @@ class PlistParser {
     if (startQuote || allowUnquotedStringsAtRoot) {
       const noStartQuote = allowUnquotedStringsAtRoot && !startQuote;
       let ch = this.plist[noStartQuote ? this.i : ++this.i];
-      while (true) { // eslint-disable-line no-constant-condition
+      while (true) {
         if (!ch) {
           if (noStartQuote) {
             break;
           }
-          throw new RangeError('Unexpected end of quoted string at offset ' + this.i);
+          throw new RangeError(
+            'Unexpected end of quoted string at offset ' + this.i
+          );
         }
         if (ch === startQuote) {
           break;
@@ -183,7 +217,10 @@ class PlistParser {
         if (ch === '\\') {
           ch = this.plist[++this.i];
           if (!ch) {
-            throw new RangeError('Unexpected end of quoted string (after backslash) at offset ' + this.i);
+            throw new RangeError(
+              'Unexpected end of quoted string (after backslash) at offset ' +
+              this.i
+            );
           }
           // Format gives double backslashes (e.g., to escape quotes) so we
           //   look for another to swallow it
@@ -192,25 +229,28 @@ class PlistParser {
           } else if (ch !== startQuote) {
             str += '\\';
           }
-          // Now advanced past escaped quote so safe for loop to resume and break on next (unescaped) `startQuote`
+          // Now advanced past escaped quote so safe for loop
+          //   to resume and break on next (unescaped) `startQuote`
         }
         str += ch;
         ch = this.plist[++this.i];
       }
     } else {
       // Check if this is hex data format: 0xHEXHEX HEXHEX ...
-      const isHexData = this.plist[this.i] === '0' && this.plist[this.i + 1] === 'x';
+      const isHexData = this.plist[this.i] === '0' &&
+        this.plist[this.i + 1] === 'x';
       if (isHexData) {
         // Parse hex data: 0xHEXHEX HEXHEX HEXHEX ... (including ellipsis)
-        // Include 0x prefix, hex digits, spaces, and periods, but stop at delimiters
-        while (ch && (/[0-9a-fx\s.]/i).test(ch) && ch !== ';' && ch !== ',' && ch !== '}' && ch !== ')') {
+        // Include 0x prefix, hex digits, spaces, and periods,
+        //   but stop at delimiters
+        while (ch && (/[\da-fx\s.]/vi).test(ch) && ch !== ';' && ch !== ',' && ch !== '}' && ch !== ')') {
           str += ch;
           ch = this.plist[++this.i];
         }
         // Trim trailing whitespace from hex data
         str = str.trimEnd();
       } else {
-        while (ch && (/\w/).test(ch)) {
+        while (ch && (/\w/v).test(ch)) {
           str += ch;
           ch = this.plist[++this.i];
         }
@@ -219,7 +259,8 @@ class PlistParser {
     if (startQuote) {
       ch = this.plist[++this.i];
       if (this.allowAngledBracketStrings && hexString) {
-        // Handle array-like format inside angled brackets: <"str1","str2","str3">
+        // Handle array-like format inside angled brackets:
+        //   <"str1","str2","str3">
         while (ch === ',') {
           this.i++; // skip comma
           ch = this.plist[this.i];
@@ -229,7 +270,9 @@ class PlistParser {
             let innerCh = this.plist[++this.i];
             while (true) {
               if (!innerCh) {
-                throw new RangeError('Unexpected end of quoted string at offset ' + this.i);
+                throw new RangeError(
+                  'Unexpected end of quoted string at offset ' + this.i
+                );
               }
               if (innerCh === quoteChar) {
                 break;
@@ -237,7 +280,11 @@ class PlistParser {
               if (innerCh === '\\') {
                 innerCh = this.plist[++this.i];
                 if (!innerCh) {
-                  throw new RangeError('Unexpected end of quoted string (after backslash) at offset ' + this.i);
+                  throw new RangeError(
+                    'Unexpected end of quoted string (after ' +
+                      'backslash) at offset ' +
+                    this.i
+                  );
                 }
                 if (innerCh === '\\') {
                   innerCh = this.plist[++this.i];
@@ -259,7 +306,9 @@ class PlistParser {
           );
         }
         if (ch !== '>') {
-          throw new TypeError('Angled bracket string closing bracket expected but found ' + ch);
+          throw new TypeError(
+            'Angled bracket string closing bracket expected but found ' + ch
+          );
         }
         this.i++;
       }
@@ -271,7 +320,7 @@ class PlistParser {
   * @param {boolean} [cfg.dictValue]
   * @throws {RangeError}
   * @throws {TypeError}
-  * @returns {undefined|DefaultsResult}
+  * @returns {undefined|import('./typedefs.js').DefaultsResult}
   */
   check ({dictValue} = {}) {
     let ch = this.advanceWhitespace();
@@ -283,9 +332,11 @@ class PlistParser {
     switch (ch) {
     case undefined: {
       if (mode === 'firstRun') {
-        throw new RangeError('No non-whitespace input found at offset ' + this.i);
+        throw new RangeError(
+          'No non-whitespace input found at offset ' + this.i
+        );
       }
-      return; // Finished!
+      return undefined; // Finished!
     }
     case '{': {
       this.i++;
@@ -299,11 +350,10 @@ class PlistParser {
     }
     case '<': {
       ch = this.plist[++this.i];
-      if (this.allowAngledBracketStrings && ch === '"') {
-        result = this.string({hexString: true});
-      } else {
-        result = this.data();
-      }
+      result = this.allowAngledBracketStrings &&
+        ch === '"'
+        ? this.string({hexString: true})
+        : this.data();
       break;
     }
     case '}': {
@@ -312,7 +362,7 @@ class PlistParser {
       }
       this.i++;
       this.currentParents.pop();
-      return;
+      return undefined;
     }
     case ')': {
       if (mode !== 'array') {
@@ -320,7 +370,7 @@ class PlistParser {
       }
       this.i++;
       this.currentParents.pop();
-      return;
+      return undefined;
     }
     case ',': {
       if (mode === 'array') {
@@ -328,7 +378,7 @@ class PlistParser {
         this.incrementCurrentParentItemCount();
         this.check();
         // Todo: Should we throw upon repeating ','?
-        return;
+        return undefined;
       } else if (mode === 'dict') {
         // Allow commas in dicts for NSData format: {length = 32, bytes = 0x...}
         this.i++;
@@ -340,14 +390,19 @@ class PlistParser {
           );
         }
         this.check();
-        return;
-      } else {
-        throw new TypeError('Unexpected comma during non-array/non-dict mode ' + mode + '; at index ' + this.i);
+        return undefined;
       }
+      throw new TypeError(
+        'Unexpected comma during non-array/non-dict mode ' +
+          mode + '; at index ' + this.i
+      );
     }
     case ';': {
       if (mode !== 'dict') {
-        throw new TypeError('Unexpected semi-colon during non-dict mode ' + mode + '; at index ' + this.i);
+        throw new TypeError(
+          'Unexpected semi-colon during non-dict mode ' +
+            mode + '; at index ' + this.i
+        );
       }
       this.i++;
       this.incrementCurrentParentItemCount();
@@ -359,7 +414,7 @@ class PlistParser {
       }
       this.check();
       // Todo: Should we throw upon repeating ';'?
-      return;
+      return undefined;
     }
     default:
       switch (mode) {
@@ -376,7 +431,8 @@ class PlistParser {
         if (ch !== '=') {
           throw new TypeError(
             'Expecting "=" character after dict key ' + (currentKey === '') +
-            '; found ' + ch + '; at offset ' + this.i + '; ' // + this.plist.slice(this.i)
+            '; found ' + ch + '; at offset ' + this.i + '; '
+            // + this.plist.slice(this.i)
           );
         }
         this.i++;
@@ -394,7 +450,10 @@ class PlistParser {
         break;
       }
       default: { // "firstRun"
-        result = this.string({allowUnquotedStringsAtRoot: !dictValue && this.allowUnquotedStringsAtRoot});
+        result = this.string({
+          allowUnquotedStringsAtRoot: !dictValue &&
+            this.allowUnquotedStringsAtRoot
+        });
         break;
       }
       }
@@ -423,6 +482,8 @@ class PlistParser {
         case 'dict': {
           throw new RangeError('Premature end to dict (before key)');
         }
+        default:
+          break;
         }
       }
       // Finished!
@@ -430,18 +491,25 @@ class PlistParser {
     }
     case 'array': {
       this.checkParentItemCount(mode);
-      currentParent.push(result);
+      /** @type {any[]} */
+      (currentParent).push(result);
       break;
     }
     case 'dict': {
       this.checkParentItemCount(mode);
-      currentParent[currentKey] = result;
+      /** @type {Record<string, any>} */ (currentParent)[
+        /** @type {string} */
+        (currentKey)
+      ] = result;
       break;
     }
+    default:
+      break;
     }
     this.check();
     return result;
   }
+  i = 0;
 }
 
 export default PlistParser;

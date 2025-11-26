@@ -9,14 +9,16 @@ import PlistParser from './PlistParser.js';
 * Based on `ioreg.c`
 * @todo Put this into own library with `PlistParser` dependency?
 * @param {string} str The string containing the ioreg data
-* @returns {ParsedIORegResult[]}
+* @returns {import('./typedefs.js').ParsedIORegResult[]}
 */
 function getParsedIORegInfo (str) {
   str = str.trim();
 
-  // e.g., +-o MacBookAir7,2  <class IOPlatformExpertDevice, id 0x100000112, registered, matched, active, busy 0 (158524 ms), retain 42>
+  // e.g., +-o MacBookAir7,2  <class IOPlatformExpertDevice,
+  //  id 0x100000112, registered, matched, active,
+  //  busy 0 (158524 ms), retain 42>
   // Todo: Support bold, etc.?
-  const classInfo = /(?:^|\n)(?:(\+-o )|(?:[ |] )*)(\S+)(?:@(\S+))?\s+<class (\w+)(?:, id 0x(\w+))?(?:, (!?)registered, (!?)matched, (in)?active, busy (\d+))?(?: \((\d+) ms\))?(?:, retain (\d+))?>([\s\S]+?)(?=\n\w|\s*$)/g;
+  const classInfo = /(?:^|\n)(?:(\+-o )|(?:[ \|] )*)(\S+)(?:@(\S+))?\s+<class (\w+)(?:, id 0x(\w+))?(?:, (!?)registered, (!?)matched, (in)?active, busy (\d+))?(?: \((\d+) ms\))?(?:, retain (\d+))?>([\s\S]+?)(?=\n\w|\s*$)/gv;
   let match,
     isNode, ioServiceName, ioServiceLocation, ioServiceClass,
     id, notRegistered, notMatched, inactive, busyTime,
@@ -29,20 +31,24 @@ function getParsedIORegInfo (str) {
       accumulatedBusyTime, retainCount, plist
     ] = match;
 
-    const parser = new PlistParser({plist, allowAngledBracketStrings: true, allowMissingSeparators: true});
+    const parser = new PlistParser({
+      plist, allowAngledBracketStrings: true, allowMissingSeparators: true
+    });
     const info = parser.start();
     matches.push({
       isNode: Boolean(isNode),
       ioServiceName,
-      ioServiceLocation: ioServiceLocation !== undefined ? ioServiceLocation : null,
+      ioServiceLocation: ioServiceLocation !== undefined
+        ? ioServiceLocation
+        : null,
       ioServiceClass,
-      id: parseInt(id, 16),
+      id: Number.parseInt(id, 16),
       registered: !notRegistered,
       matched: !notMatched,
       active: !inactive,
-      busyTime: parseInt(busyTime, 10),
-      accumulatedBusyTime: parseInt(accumulatedBusyTime, 10),
-      retainCount: retainCount ? parseInt(retainCount, 10) : null,
+      busyTime: Number.parseInt(busyTime),
+      accumulatedBusyTime: Number.parseInt(accumulatedBusyTime),
+      retainCount: retainCount ? Number.parseInt(retainCount) : null,
       info
     });
   }

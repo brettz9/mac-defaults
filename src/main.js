@@ -1,9 +1,13 @@
-/* eslint-disable no-console */
+/* eslint-disable no-console -- Deliberate logging */
+/* eslint-disable n/no-sync -- Sync API */
+/* eslint-disable no-shadow -- Easier */
+/* eslint-disable sonarjs/no-os-command-from-path -- API */
 /** @module MacOSDefaults */
 
 // https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man1/defaults.1.html
 
-// defaults [-currentHost | -host hostname] write domain { 'plist' | key 'value' }
+// defaults [-currentHost | -host hostname] write domain
+//   { 'plist' | key 'value' }
 //  defaults [-currentHost | -host hostname] read [domain [key]]
 //  defaults [-currentHost | -host hostname] read-type domain key
 //  defaults [-currentHost | -host hostname] rename domain old_key new_key
@@ -22,54 +26,59 @@ const allowedTypes = [
   'date', 'array', 'array-add', 'dict', 'dict-add'
 ];
 const typeAliases = {
-  'hex': 'data',
-  'int': 'integer',
-  'bool': 'boolean',
-  'real': 'float'
+  hex: 'data',
+  int: 'integer',
+  bool: 'boolean',
+  real: 'float'
 };
 const typeAliasNames = Object.keys(typeAliases);
-const fullTypeList = allowedTypes.concat(typeAliasNames);
+const fullTypeList = [...allowedTypes, ...typeAliasNames];
 
 /**
-* Surrounds a value with double quotes and escapes any within it
-* @private
-* @param {string} val Value to escape
-* @returns {string} The escaped and quoted string
-*/
+ * Surrounds a value with double quotes and escapes any within it.
+ * @private
+ * @param {string} val Value to escape
+ * @returns {string} The escaped and quoted string
+ */
 function quoteAndEscapeDoubleQuotes (val) {
-  return '"' + val.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+  return '"' + val.replaceAll('\\', '\\\\').
+    replaceAll('"', String.raw`\"`) + '"';
 }
 /**
-* Escapes any XML apostrophes
+* Escapes any XML apostrophes.
 * @private
 * @param {string} val Value to escape
 * @returns {string} The escaped string
 */
 function escapeXMLApostrophe (val) {
-  return val.replace(/'/g, '&apos;');
+  return val.replaceAll('\'', '&apos;');
 }
 
 /**
-* Escapes content for safe use within XML (ampersand, less-than, and greater-than);
+* Escapes content for safe use within XML (ampersand, less-than, and
+* greater-than);
 * Does not escape quotes as is not intended for attributes.
 * @private
 * @param {string} s The content to escape to be used as XML content
 * @returns {string} The escaped string
 */
 function escapeXMLContent (s) {
-  return s.replace(/&/g, '&amp;').replace(/>/g, '&gt;').replace(/</g, '&lt;');
+  return s.replaceAll('&', '&amp;').replaceAll('>', '&gt;').
+    replaceAll('<', '&lt;');
 }
 
 /**
 * @private
 * @param {object} cfg
 * @param {string[]} cfg.args
-* @param {HostAndDomain} cfg.hostAndDomain
+* @param {import('./typedefs.js').HostAndDomain} cfg.hostAndDomain
 * @param {string} cfg.methodName
 * @returns {boolean} Whether a domain was found or not
 */
 function addHostMethodAndDomain ({args, hostAndDomain, methodName}) {
-  const {currentHost, anyHost, hostString, app, globalDomain, domainString} = hostAndDomain;
+  const {
+    currentHost, anyHost, hostString, app, globalDomain, domainString
+  } = hostAndDomain;
   if (currentHost) {
     args.push('-currentHost');
   } else if (!anyHost) {
@@ -80,7 +89,8 @@ function addHostMethodAndDomain ({args, hostAndDomain, methodName}) {
   if (app) {
     args.push('-app', quoteAndEscapeDoubleQuotes(app));
   } else if (globalDomain) {
-    args.push('-g'); // Could also add '-globalDomain' or 'NSGlobalDomain' instead
+    // Could also add '-globalDomain' or 'NSGlobalDomain' instead
+    args.push('-g');
   } else if (domainString) {
     args.push(quoteAndEscapeDoubleQuotes(domainString));
   } else {
@@ -94,7 +104,8 @@ const pad = function (num) {
   const norm = Math.floor(Math.abs(num));
   return String(norm).padStart(2, '0');
 };
-// We use instead of date.toISOString() because we want to allow locale-aware dates as permitted
+// We use instead of date.toISOString() because we want to allow
+// locale-aware dates as permitted
 const toISOString = (date) => {
   const tzo = -date.getTimezoneOffset();
   const sgn = tzo < 0 ? '-' : '+';
@@ -109,10 +120,10 @@ const toISOString = (date) => {
 };
 */
 /**
-* @param {DefaultsInput} value
+* @param {import('./typedefs.js').DefaultsInput} value
 * @param {object} [cfg]
-* @property {boolean} [cfg.forceHex=false]
-* @property {boolean} [cfg.forceReal=false]
+* @param {boolean} [cfg.forceHex]
+* @param {boolean} [cfg.forceReal]
 * @todo Could have `forceHex` have numeric arrays treated as hex
 * @throws {TypeError}
 * @returns {string}
@@ -122,7 +133,7 @@ export const jsToPropertyListXML = function (value, cfg = {}) {
   //   e.g., <0fbd>; note: also allows optional whitespace inside)
   if (cfg.forceHex && typeof value === 'string') {
     value = new Uint8Array([...value].map((ch) => {
-      return parseInt(ch, 16);
+      return Number.parseInt(ch, 16);
     }));
   }
   const type = typeof value;
@@ -142,6 +153,8 @@ export const jsToPropertyListXML = function (value, cfg = {}) {
   case 'string': {
     return '<string>' + escapeXMLContent(String(value)) + '</string>';
   }
+  default:
+    break;
   }
   if (Array.isArray(value)) {
     return value.reduce((s, v) => {
@@ -151,7 +164,7 @@ export const jsToPropertyListXML = function (value, cfg = {}) {
   if (value && typeof value === 'object') {
     switch (Object.prototype.toString.call(value)) {
     case '[object Date]': {
-      if (Number.isNaN(value.getTime())) {
+      if (Number.isNaN(/** @type {Date} */ (value).getTime())) {
         throw new TypeError('Invalid date.');
       }
       /*
@@ -159,53 +172,64 @@ export const jsToPropertyListXML = function (value, cfg = {}) {
         return '<date>' + value.toISOString() + '</date>';
       }
       */
-      return '<date>' + value.toISOString().replace(/\.\d{3}Z$/, 'Z') + '</date>';
+      return '<date>' + /** @type {Date} */ (
+        value
+      ).toISOString().replace(/\.\d{3}Z$/v, 'Z') +
+        '</date>';
       // Having problem with timezone offsets when adding via
       //  `defaults write key '<date></date>'` and `-date` drops
       //  the timezone
       // return '<date>' + toISOString(value) + '</date>';
     }
     case '[object Uint8Array]': {
-      const s = value.reduce((s, hex) => {
+      const s = /** @type {Uint8Array} */ (value).reduce((s, hex) => {
         return s + hex.toString(16);
-      }, value.length % 2 ? '0' : '');
+      }, /** @type {Uint8Array} */ (value).length % 2 ? '0' : '');
       return '<data>' + Buffer.from(s, 'hex').toString('base64') + '</data>';
     }
+    default:
+      break;
     }
     return Object.entries(value).reduce((s, [key, value]) => {
       // Empty string keys are allowable
-      return s + '<key>' + escapeXMLContent(key) + '</key>' + jsToPropertyListXML(value, cfg);
+      return s + '<key>' + escapeXMLContent(key) + '</key>' +
+        jsToPropertyListXML(value, cfg);
     }, '<dict>') + '</dict>';
   }
-  throw new TypeError('Unrecognized type, ' + type + ', cannot be converted to XML property list item.');
+  throw new TypeError(
+    'Unrecognized type, ' + type +
+    ', cannot be converted to XML property list item.'
+  );
 };
 
 /**
-* Not in use internally.
-* Adapts {@link https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/PropertyLists/OldStylePlists/OldStylePLists.html#//apple_ref/doc/uid/20001012-BBCBDBJE}
-* @todo Add tests
-* @todo Could add `forceHex` option to have numeric arrays (or hex strings?) treated as hex
-* @param {number|DefaultsResult} value A number gets treated as a string
-* @throws {TypeError}
-* @returns {string}
-* @example
-console.log(
-  jsToAsciiPropertyList({
-    AnimalSmells: {pig: 'piggish', lamb: 'lambish', worm: 'wormy'},
-    AnimalSounds: {
-      pig: 'oink',
-      lamb: 'baa',
-      worm: 'baa',
-      Lisa: 'Why is the worm talking like a lamb?'
-    },
-    AnimalColors: {pig: 'pink', lamb: 'black', worm: 'pink'}
-  })
-);
-*/
+ * Not in use internally.
+ * Adapts {@link https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/PropertyLists/OldStylePlists/OldStylePLists.html#//apple_ref/doc/uid/20001012-BBCBDBJE}.
+ * @todo Add tests
+ * @todo Could add `forceHex` option to have numeric arrays (or hex
+ *   strings?) treated as hex
+ * @param {number|import('./typedefs.js').DefaultsResult} value A number gets
+ *  treated as a string
+ * @throws {TypeError}
+ * @returns {string}
+ * @example
+ * console.log(
+ *   jsToAsciiPropertyList({
+ *     AnimalSmells: {pig: 'piggish', lamb: 'lambish', worm: 'wormy'},
+ *     AnimalSounds: {
+ *       pig: 'oink',
+ *       lamb: 'baa',
+ *       worm: 'baa',
+ *      Lisa: 'Why is the worm talking like a lamb?'
+ *     },
+ *     AnimalColors: {pig: 'pink', lamb: 'black', worm: 'pink'}
+ *   })
+ * );
+ */
 export const jsToAsciiPropertyList = function jsToAsciiPropertyList (value) {
   if (['string', 'number'].includes(typeof value)) {
     // If empty, we need to stringify so insist on 1+ chars here
-    if ((/^\w+$/).test(String(value))) {
+    if ((/^\w+$/v).test(String(value))) {
       return String(value);
     }
     return JSON.stringify(value);
@@ -220,36 +244,46 @@ export const jsToAsciiPropertyList = function jsToAsciiPropertyList (value) {
   if (value && typeof value === 'object') {
     if (Object.prototype.toString.call(value) === '[object Uint8Array]') {
       // Note: also allows optional whitespace inside
-      return value.reduce((s, hex) => {
+      return /** @type {Uint8Array} */ (value).reduce((s, hex) => {
         return s + hex.toString(16);
       }, '<') + '>';
     }
     return Object.entries(value).reduce((s, [key, value]) => {
       // Empty string keys are allowable if quoted
-      return s + jsToAsciiPropertyList(key) + ' = ' + jsToAsciiPropertyList(value) + '; ';
+      return s + jsToAsciiPropertyList(key) + ' = ' +
+        jsToAsciiPropertyList(value) + '; ';
     }, '{ ') + '}';
   }
-  throw new TypeError('Unrecognized type cannot be converted to ASCII property list item');
+  throw new TypeError(
+    'Unrecognized type cannot be converted to ASCII property list item'
+  );
 };
 
 /**
-* Note: `useUTCDates` doesn't seem to work through `defaults` even though
-*  it seems some property list files store timezone-aware dates
-* @private
-* @param {object} cfg
-* @param {PropertyListValue} cfg.value
-* @throws {TypeError}
-* @returns {ReducedValue} Array consisting of the valid type string, the matching value (possibly converted or added into an array), and a boolean defaultString on whether the default format was used (no explicit type)
-*/
+ * Note: `useUTCDates` doesn't seem to work through `defaults` even though
+ *  it seems some property list files store timezone-aware dates.
+ * @private
+ * @param {object} cfg
+ * @param {import('./typedefs.js').PropertyListValue} cfg.value
+ * @throws {TypeError}
+ * @returns {import('./typedefs.js').ReducedValue} Array consisting of the valid
+ *   type string, the matching value (possibly converted or added into an
+ *   array), and a boolean defaultString on whether the default format was used
+ *   (no explicit type)
+ */
 function reduceValue ({value: valArray}) { // , useUTCDates
   let defaultString = false;
-  if (typeof valArray === 'string') { // Note: Empty string ok as allowable if double-quoted (as we do below)
+  // Note: Empty string ok as allowable if double-quoted (as we do below)
+  if (typeof valArray === 'string') {
     defaultString = true;
     valArray = ['string', valArray];
   } else if (!Array.isArray(valArray) || valArray.length !== 2 ||
     !fullTypeList.includes(valArray[0])
   ) {
-    throw new TypeError('A value must only be a string or a two-item array with a valid type key.');
+    throw new TypeError(
+      'A value must only be a string or a two-item array with a ' +
+      'valid type key.'
+    );
   }
   let [type, value] = valArray;
   switch (type) {
@@ -266,35 +300,45 @@ function reduceValue ({value: valArray}) { // , useUTCDates
     if (Object.prototype.toString.call(value) === '[object Uint8Array]' ||
       Array.isArray(value)
     ) {
-      value = value.reduce((s, hex) => {
-        // Could give `NaN` if a bad number exists, so we check string result below
+      value = /** @type {Uint8Array} */ (value).reduce((s, hex) => {
+        // Could give `NaN` if a bad number exists, so we check string
+        // result below
         return s + hex.toString(16);
       }, '');
     }
-    if (typeof value !== 'string' || !(/^[\da-f]+$/i).test(value)) {
-      throw new TypeError('Hex digits (as a string) are expected for the `data`/`hex` value.');
+    if (typeof value !== 'string' || !(/^[\da-f]+$/iv).test(value)) {
+      throw new TypeError(
+        'Hex digits (as a string) are expected for the `data`/`hex` value.'
+      );
     }
     type = 'data';
     break;
   }
   case 'integer': case 'int': {
     if (!Number.isInteger(value)) {
-      throw new TypeError('An integer is expected for the `int`/`integer` value.');
+      throw new TypeError(
+        'An integer is expected for the `int`/`integer` value.'
+      );
     }
     value = String(value);
     break;
   }
   case 'float': case 'real': { // in XML as `<real>`
     if (typeof value !== 'number') {
-      throw new TypeError('A number (float) is expected for the `float` value.');
+      throw new TypeError(
+        'A number (float) is expected for the `float` value.'
+      );
     }
     type = 'float';
     value = String(value);
     break;
   }
-  case 'boolean': case 'bool': { // (true|false|yes|no) //  in XML as `<true>` or `<false>`
-    if (typeof value !== 'boolean') { // && !['yes', 'no'].includes(value)) {
-      throw new TypeError('A boolean is expected for the `bool`/`boolean` value.');
+  // (true|false|yes|no) //  in XML as `<true>` or `<false>`
+  case 'boolean': case 'bool': {
+    if (typeof value !== 'boolean') {
+      throw new TypeError(
+        'A boolean is expected for the `bool`/`boolean` value.'
+      );
     }
     value = String(value);
     break;
@@ -302,23 +346,28 @@ function reduceValue ({value: valArray}) { // , useUTCDates
   case 'date': {
     if (typeof value === 'string') {
       // Todo: Liberalize further
-      if ((/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$/).test(value)) { // JSON string date
+      // JSON string date
+      const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+\-]\d{2}:\d{2})$/v;
+      if (dateRegex.test(value)) {
         value = new Date(value);
       } else {
         throw new TypeError('A valid date-string must be supplied.');
       }
     }
     if (Object.prototype.toString.call(value) !== '[object Date]' ||
-      isNaN(value.getTime())
+      Number.isNaN(/** @type {Date} */ (value).getTime())
     ) {
-      throw new TypeError('A date object or valid date string is expected for the `string` value.');
+      throw new TypeError(
+        'A date object or valid date string is expected for the ' +
+        '`string` value.'
+      );
     }
     /*
     value = useUTCDates
       ? value.toISOString()
       : toISOString(value);
     */
-    value = value.toISOString();
+    value = /** @type {Date} */ (value).toISOString();
     break;
   }
   case 'array': case 'array-add': {
@@ -327,22 +376,26 @@ function reduceValue ({value: valArray}) { // , useUTCDates
     }
     const values = Object.values(value);
     /*
-    // Todo: `defaults` allows (if on a dict), but does nothing; we could throw optionally
+    // Todo: `defaults` allows (if on a dict), but does nothing; we could
+    // throw optionally
     if (type === 'array-add' && !values.length) {
-      throw new TypeError('A `' + type + '` must have an array with at least one key.');
+      throw new TypeError(
+        'A `' + type + '` must have an array with at least one key.'
+      );
     }
     */
-    value = [];
-    values.forEach((v) => {
+    value = values.map((v) => {
       v = jsToPropertyListXML(v); // , {useUTCDates});
-      value.push(" '" + escapeXMLApostrophe(v) + "'");
-    }, '');
+      return " '" + escapeXMLApostrophe(v) + "'";
+    });
     // value = "'<array>" + escapeXMLApostrophe(value.reduce((s, v) => {
     /*
       // We'd need something like this if not building XML strings
       const [type, val] = reduceValue({value: v, useUTCDates});
       if (['array', 'array-add', 'dict', 'dict-add'].includes(type)) {
-        throw new TypeError('Cannot nest composite types (arrays and dictionaries)');
+        throw new TypeError(
+          'Cannot nest composite types (arrays and dictionaries)'
+        );
       }
       return s + ' ' + val;
       */
@@ -355,86 +408,105 @@ function reduceValue ({value: valArray}) { // , useUTCDates
   }
   case 'dict': case 'dict-add': {
     if (!value || typeof value !== 'object') {
-      throw new TypeError('An object is expected for the `' + type + '` value.');
+      throw new TypeError(
+        'An object is expected for the `' + type + '` value.'
+      );
     }
     const entries = Object.entries(value);
     /*
-    // Todo: `defaults` allows (if on a dict), but does nothing; we could throw optionally
+    // Todo: `defaults` allows (if on a dict), but does nothing; we could
+    // throw optionally
     if (type === 'dict-add' && !entries.length) {
-      throw new TypeError('A `' + type + '` must have an object with at least one key.');
+      throw new TypeError(
+        'A `' + type + '` must have an object with at least one key.'
+      );
     }
     */
 
-    // Tried encapsulating within single type element (`<dict>`) but doesn't work as with
-    //   other types; two arguments are needed
+    // Tried encapsulating within single type element (`<dict>`) but doesn't
+    // work as with other types; two arguments are needed
     /*
-    value = "'<dict>" + escapeXMLApostrophe(Object.entries(value).reduce((s, [key, v]) => {
+    value = "'<dict>" +
+      escapeXMLApostrophe(Object.entries(value).reduce((s, [key, v]) => {
       v = jsToPropertyListXML(v, {useUTCDates});
       return s + '<key>' + key + '</key> ' + v;
     }, '')) + "</dict>'";
     */
-    value = [];
-    entries.forEach(([key, v]) => {
+    value = entries.flatMap(([key, v]) => {
       /*
       // We'd need something like this if not building XML strings
       const [type, val] = reduceValue({value: v, useUTCDates});
       if (['array', 'array-add', 'dict', 'dict-add'].includes(type)) {
-        throw new TypeError('Cannot nest composite types (arrays and dictionaries)');
+        throw new TypeError(
+          'Cannot nest composite types (arrays and dictionaries)'
+        );
       }
       return s + key + ' ' + val;
       */
       v = jsToPropertyListXML(v); // , {useUTCDates});
       // Empty string keys are allowable if quoted
-      value.push(quoteAndEscapeDoubleQuotes(key), " '" + escapeXMLApostrophe(v) + "'");
-    }, '');
+      return [
+        quoteAndEscapeDoubleQuotes(key), " '" + escapeXMLApostrophe(v) + "'"
+      ];
+    });
     return [type, value, defaultString];
   }
   default: {
-    throw new TypeError('Unexpected object property encountered on value object: ' + type);
+    throw new TypeError(
+      'Unexpected object property encountered on value object: ' + type
+    );
   }
   }
   return [type, [value], defaultString];
 }
 
 /**
-* @private
-* @param {object} cfg
-* @param {string} cfg.key
-* @param {string} cfg.methodName
-* @throws {TypeError}
-*/
+ * @private
+ * @param {object} cfg
+ * @param {string} cfg.key
+ * @param {string} cfg.methodName
+ * @throws {TypeError}
+ * @returns {void}
+ */
 function checkKey ({key, methodName}) {
   if (typeof key !== 'string') {
-    throw new TypeError('The key supplied to ' + methodName + ' must be a string.');
+    throw new TypeError(
+      'The key supplied to ' + methodName + ' must be a string.'
+    );
   }
 }
 
 /**
 * @private
 * @param {object} cfg
-* @param {?Host} [cfg.host]
+* @param {?import('./typedefs.js').Host} [cfg.host]
 * @param {string} cfg.methodName Used in error messages
 * @throws {TypeError}
-* @returns {HostInfo}
+* @returns {import('./typedefs.js').HostInfo}
 */
 function checkHost ({host, methodName}) {
   let currentHost = false, anyHost = false;
   if (host && typeof host === 'object') {
     if ('currentHost' in host && !('host' in host)) {
-      currentHost = host.currentHost;
+      ({currentHost} = host);
       host = undefined;
     } else if ('host' in host) {
       ({host} = host);
     } else {
-      throw new TypeError('If host is an object, it must have have a `currentHost` or `host` property; ' + methodName + ' method');
+      throw new TypeError(
+        'If host is an object, it must have have a `currentHost` or ' +
+        '`host` property; ' + methodName + ' method'
+      );
     }
   }
   if (!currentHost) {
-    if (host == null) {
+    if (host === null || host === undefined) {
       anyHost = true;
     } else if (typeof host !== 'string' || !host) {
       throw new TypeError(
-        'If host is not an object, host must either be `undefined`/`null` or a non-empty string; ' + methodName + ' method'
+        'If host is not an object, host must either be ' +
+        '`undefined`/`null` or a non-empty string; ' + methodName +
+        ' method'
       );
     }
   }
@@ -447,7 +519,8 @@ function checkHost ({host, methodName}) {
 * @param {?(DomainWithHost|Domain)} [cfg.domain]
 * @param {?Host} [cfg.host]
 * @param {string} cfg.methodName Used in error messages
-* @param {boolean} [cfg.optionalDomain=false] Whether to throw if the domain is missing
+* @param {boolean} [cfg.optionalDomain] Whether to throw if the domain is
+*   missing
 * @throws {TypeError}
 * @returns {HostAndDomain}
 */
@@ -462,7 +535,10 @@ function checkHostAndDomain ({domain, host, methodName, optionalDomain}) {
     if ('app' in domain) {
       ({app} = domain);
       if (!app || typeof app !== 'string') {
-        throw new TypeError('app, if present on a domain object, must be a non-empty string; ' + methodName + ' method');
+        throw new TypeError(
+          'app, if present on a domain object, must be a non-empty ' +
+          'string; ' + methodName + ' method'
+        );
       }
     } else if (['g', 'globalDomain', 'NSGlobalDomain'].some((p) => {
       return p in domain;
@@ -471,13 +547,18 @@ function checkHostAndDomain ({domain, host, methodName, optionalDomain}) {
         return domain[p];
       });
     } else {
-      throw new TypeError('If domain is an object, it must have an `app` or `g`/`globalDomain`/`NSGlobalDomain` property; ' + methodName + ' method');
+      throw new TypeError(
+        'If domain is an object, it must have an `app` or ' +
+        '`g`/`globalDomain`/`NSGlobalDomain` property; ' +
+        methodName + ' method'
+      );
     }
   }
   if (!globalDomain && !app) {
     if (domain === '' || (domain && typeof domain !== 'string')) {
       throw new TypeError(
-        'If a global or app domain is not specified, a non-empty string must be supplied to ' + methodName
+        'If a global or app domain is not specified, a non-empty ' +
+        'string must be supplied to ' + methodName
       );
     }
     if (!domain && !optionalDomain) {
@@ -494,19 +575,25 @@ function checkHostAndDomain ({domain, host, methodName, optionalDomain}) {
 /**
 * @param {string} findString The raw string returned from `defaults find`
 * @param {object} [cfg] Configuration object
-* @property {boolean} [cfg.json=false] Whether to force the parsed results as JSON (or allow Uint8Arrays for hex)
-* @returns {FindResults} Returns an array of results or a single object with an `error` property set to the parser error
+* @param {boolean} [cfg.json] Whether to force the parsed results
+*   as JSON (or allow Uint8Arrays for hex)
+* @returns {FindResults} Returns an array of results or a single object
+*   with an `error` property set to the parser error
 */
-export const parseFindResults = function parseFindResults (findString, {json = false} = {}) {
+export const parseFindResults = function parseFindResults (
+  findString, {json = false} = {}
+) {
   findString = findString.trim();
   const results = [];
-  const foundKeysDomain = /(?:^|\n)Found (\d+) keys in domain '([^']+)':([\s\S]+?)(?=\n\w|\s*$)/g;
+  const foundKeysDomain = /(?:^|\n)Found (\d+) keys in domain '([^']+)':([\s\S]+?)(?=\n\w|\s*$)/gv;
   let match, keys, domain, message, result;
   try {
     while ((match = foundKeysDomain.exec(findString)) !== null) {
       [message, keys, domain, result] = match;
       // console.log(result, keys, domain, '\n----------\n');
-      keys = parseInt(keys, 10); // This could be avoided in favor of having user do `Object.keys` length on `result`
+      // This could be avoided in favor of having user do
+      // `Object.keys` length on `result`
+      keys = Number.parseInt(keys);
       const parser = new PlistParser({plist: result, hexAsArrays: json});
       result = parser.start();
       results.push({message, keys, domain, result});
@@ -524,10 +611,14 @@ export const parseFindResults = function parseFindResults (findString, {json = f
 /**
 * @private
 * @param {object} cfg
-* @param {?ReturnType} [cfg.returnType]
-* @param {boolean} [cfg.hexAsArrays=false] Whether to force hex to be returned as JSON arrays rather than Uint8Arrays
+* @param {?import('./typedefs.js').ReturnType} [cfg.returnType]
+* @param {boolean} [cfg.hexAsArrays] Whether to force hex to be returned
+*   as JSON arrays rather than Uint8Arrays
 * @param {string} cfg.stdout A string (obtained from stdout)
-* @returns {DefaultsResult} Array or object for `returnType` "find"; for `returnType` "jsType" may be any of the listed types; otherwise a string
+* @returns {import('./typedefs.js').DefaultsResult} Array or object for
+*   `returnType` "find"; for
+*   `returnType` "jsType" may be any of the listed types; otherwise a
+*   string
 */
 function convertReturnType ({returnType, hexAsArrays, stdout}) {
   switch (returnType) {
@@ -540,41 +631,77 @@ function convertReturnType ({returnType, hexAsArrays, stdout}) {
     break;
   }
   case 'readType': {
-    stdout = stdout.replace(/^Type is (.*)\n$/, '$1');
+    stdout = stdout.replace(/^Type is (.*)\n$/v, '$1');
     break;
   }
   case 'jsType': {
-    const parser = new PlistParser({plist: stdout, hexAsArrays, allowUnquotedStringsAtRoot: true});
+    const parser = new PlistParser({
+      plist: stdout, hexAsArrays, allowUnquotedStringsAtRoot: true
+    });
     stdout = parser.start();
     break;
   }
+  default:
+    break;
   }
   return stdout;
 }
 
+/**
+ *
+ */
 class MacOSDefaults extends Spawn {
   /**
   * @param {object} [cfg]
-  * @param {boolean} [cfg.debug=false] Whether to merely return the query rather than execute it
-  * @param {boolean} [cfg.jsonResults=false] Whether output from `find` should be in JSON (converting Uint8Array hex representations into arrays)
-  * @param {boolean} [cfg.log=false] Whether to log steps to console
-  * @param {boolean} [cfg.sync=false] Whether to use the synchronous API
-  * @param {boolean} [cfg.forceReal=false] Whether to treat integers as well as non-integer numbers as &ltreal>`
-  * @param {boolean} [cfg.forceHex=false] Whether to treat all strings as hexadecimal &lt;data blocks
+  * @param {boolean} [cfg.debug] Whether to merely return the query rather
+  *   than execute it
+  * @param {boolean} [cfg.jsonResults] Whether output from `find` should be
+  *   in JSON (converting Uint8Array hex representations into arrays)
+  * @param {boolean} [cfg.log] Whether to log steps to console
+  * @param {boolean} [cfg.sync] Whether to use the synchronous API
+  * @param {boolean} [cfg.forceReal] Whether to treat integers as well as
+  *   non-integer numbers as &ltreal>`
+  * @param {boolean} [cfg.forceHex] Whether to treat all strings as
+  *   hexadecimal &lt;data blocks
   */
-  constructor ({debug, jsonResults, log, sync, forceReal, forceHex} = {}) { // , useUTCDates
+  constructor (
+    {debug, jsonResults, log, sync, forceReal, forceHex} = {}
+  ) { // , useUTCDates
     super({debug, log, sync});
     // Todo: Allow default domain/host
-    Object.assign(this, {jsonResults, forceReal, forceHex}); // , useUTCDates
+    this.jsonResults = jsonResults;
+    this.forceReal = forceReal;
+    this.forceHex = forceHex;
+    // this.useUTCDates = useUTCDates;
   }
   /**
-  * To support multiple vs. single object signatures without ambiguity, the values mentioned below must be expressed somewhat differently depending on their position.
-  * @param {DomainWithHost|Domain|PList} domain If a string, is a regular domain path. To supply a plist to the single-object signature when it is in string or array form, encapsulate the value within an object such as follows: `{plist: "{a=1;}"}`. Besides this adaptation for the string and array formats, the properties of the other `plistOrKeyValue` object formats may be used on this object instead.
-  * @param {PropertyListOrKeyValue} [plistOrKeyValue] For setting the whole file (must be a dict (object)), use either of these formats: `"{a=1;}"` or `{value: {a: '1'}}`. For key-value setting (including where the [type]{@link PropertyListType} is "string", "array-add", "dict", etc.), use the format `{key: 'a', type: 'string', value: '1'}`, `{key: 'a', value: ['string', '1']}` or `['a', ['string', '1']]` (or for strings only, just `{key: 'a', value: '1'}` or `['a', '1']`)
-  * @param {?Host} [host]
-  * @param {?Host} [host2] Used as the host if `plistOrKeyValue` is a string and the `host` is an array
+  * To support multiple vs. single object signatures without ambiguity,
+  * the values mentioned below must be expressed somewhat differently
+  * depending on their position.
+  * @param {import('./typedefs.js').DomainWithHost|
+  *   import('./typedefs.js').Domain|
+  *   import('./typedefs.js').PList} domain If a string, is a regular
+  *   domain path. To supply a plist to the single-object signature when
+  *   it is in string or array form, encapsulate the value within an
+  *   object such as follows: `{plist: "{a=1;}"}`. Besides this
+  *   adaptation for the string and array formats, the properties of the
+  *   other `plistOrKeyValue` object formats may be used on this object
+  *   instead.
+  * @param {import('./typedefs.js').
+  *   PropertyListOrKeyValue} [plistOrKeyValue] For setting the
+  *   whole file (must be a dict (object)), use either of these formats:
+  *   `"{a=1;}"` or `{value: {a: '1'}}`. For key-value setting (including
+  *   where the [type]{@link PropertyListType} is "string", "array-add",
+  *   "dict", etc.), use the format `{key: 'a', type: 'string',
+  *   value: '1'}`, `{key: 'a', value: ['string', '1']}` or
+  *   `['a', ['string', '1']]` (or for strings only, just `{key: 'a',
+  *   value: '1'}` or `['a', '1']`)
+  * @param {?import('./typedefs.js').Host} [host]
+  * @param {?import('./typedefs.js').Host} [host2] Used as the host if
+  *   `plistOrKeyValue` is a string and the `host` is an array
   * @throws {TypeError}
-  * @returns {Promise|string} The returned or resolved string will probably be empty
+  * @returns {Promise<string>|string} The returned or resolved string will
+  *   probably be empty
   */
   write (domain, plistOrKeyValue, host, host2) {
     let key, value, escapedValueArgs, type, defaultString;
@@ -593,7 +720,10 @@ class MacOSDefaults extends Spawn {
       plistOrKeyValue = [plistOrKeyValue, host];
       host = host2;
     }
-    if (plistOrKeyValue && typeof plistOrKeyValue === 'object' && 'key' in plistOrKeyValue) {
+    if (
+      plistOrKeyValue && typeof plistOrKeyValue === 'object' &&
+      'key' in plistOrKeyValue
+    ) {
       const {key, type, value} = plistOrKeyValue;
       plistOrKeyValue = [key, type ? [type, value] : value];
     }
@@ -603,15 +733,25 @@ class MacOSDefaults extends Spawn {
       }
       [key, value] = plistOrKeyValue;
       checkKey({key, methodName});
-      ([type, escapedValueArgs, defaultString] = reduceValue({value, useUTCDates: this.useUTCDates}));
+      ([type, escapedValueArgs, defaultString] = reduceValue({
+        value, useUTCDates: this.useUTCDates
+      }));
       plistOrKeyValue = undefined;
     } else if (plistOrKeyValue && typeof plistOrKeyValue === 'object') {
-      if (!('value' in plistOrKeyValue) || Object.keys(plistOrKeyValue).length !== 1) {
-        throw new TypeError('A plist object must be wrapped inside of a `value` with no other properties.');
+      if (
+        !('value' in plistOrKeyValue) ||
+        Object.keys(plistOrKeyValue).length !== 1
+      ) {
+        throw new TypeError(
+          'A plist object must be wrapped inside of a `value` with no ' +
+          'other properties.'
+        );
       }
       const {value} = plistOrKeyValue;
       if (!value || typeof value !== 'object' || Array.isArray(value) ||
-        ['Date', 'Uint8Array'].includes(Object.prototype.toString.call(value).slice(8, -1))
+        ['Date', 'Uint8Array'].includes(
+          Object.prototype.toString.call(value).slice(8, -1)
+        )
       ) {
         throw new TypeError('A plist value must be a plain object.');
       }
@@ -622,7 +762,10 @@ class MacOSDefaults extends Spawn {
         useUTCDates: this.useUTCDates
       });
     } else if (typeof plistOrKeyValue !== 'string' || !plistOrKeyValue) {
-      throw new TypeError('`write` must be provided with a non-empty plist string or object, or a key-value array');
+      throw new TypeError(
+        '`write` must be provided with a non-empty plist string or ' +
+        'object, or a key-value array'
+      );
     }
     // Use plistOrKeyValue if defined or otherwise key, value
 
@@ -646,10 +789,14 @@ class MacOSDefaults extends Spawn {
   }
 
   /**
-  * @param {?(DomainWithHost|Domain|KeyObject)} [domain]
-  * @param {string} [key]
-  * @param {?Host} [host]
-  * @returns {Promise|DefaultsResult} If not `sync` will return a `Promise`; otherwise may be any of the other types
+  * @param {?(import('./typedefs.js').DomainWithHost|
+  *   import('./typedefs.js').Domain|
+  *   import('./typedefs.js').KeyObject)} [domain]
+  * @param {string|null} [key]
+  * @param {?import('./typedefs.js').Host} [host]
+  * @returns {Promise|
+  *   import('./typedefs.js').DefaultsResult} If not `sync` will return a
+  *   `Promise`; otherwise may be any of the other types
   */
   read (domain, key, host) {
     if (domain && typeof domain === 'object') {
@@ -669,18 +816,32 @@ class MacOSDefaults extends Spawn {
     return this.defaults({returnType: 'jsType'}, ...args);
   }
 
+  /* eslint-disable jsdoc/valid-types -- Ok for JSDOc */
   /**
-  * @borrows MacOSDefaults#readType as MacOSDefaults#read-type
-  */
-  'read-type' (...args) {
-    return this.readType(...args);
+  * @param {import('./typedefs.js').DomainWithHost|
+  *   import('./typedefs.js').Domain|
+  *   import('./typedefs.js').KeyObject} domain
+  * @param {string} [key]
+  * @param {?import('./typedefs.js').Host} [host]
+   * @borrows MacOSDefaults#readType as MacOSDefaults#read-type
+   * @returns {"string"|"data"|"integer"|"float"|"boolean"
+   *   |"date"|"array"|"dictionary"|Promise<"string"|"data"|"integer"|
+   *   "float"|"boolean"|"date"|"array"|"dictionary">}
+   */
+  'read-type' (domain, key, host) {
+    /* eslint-enable jsdoc/valid-types -- Ok for JSDOc */
+    return this.readType(domain, key, host);
   }
 
   /**
-  * @param {DomainWithHost|Domain|KeyObject} domain
+  * @param {import('./typedefs.js').DomainWithHost|
+  *   import('./typedefs.js').Domain|
+  *   import('./typedefs.js').KeyObject} domain
   * @param {string} [key]
-  * @param {?Host} [host]
-  * @returns {Promise|"string"|"data"|"integer"|"float"|"boolean"|"date"|"array"|"dictionary"}
+  * @param {?import('./typedefs.js').Host} [host]
+  * @returns {Promise<"string"|"data"|"integer"|"float"|"boolean"
+  *   |"date"|"array"|"dictionary">|"string"|"data"|"integer"|"float"|"boolean"
+  *   |"date"|"array"|"dictionary"}
   */
   readType (domain, key, host) {
     if (domain && typeof domain === 'object') {
@@ -699,11 +860,14 @@ class MacOSDefaults extends Spawn {
   }
 
   /**
-  * @param {DomainWithHost|Domain|KeysObject} domain
+  * @param {import('./typedefs.js').DomainWithHost|
+  *   import('./typedefs.js').Domain|
+  *   import('./typedefs.js').KeysObject} domain
   * @param {string} [oldKey]
   * @param {string} [newKey]
-  * @param {?Host} [host]
-  * @returns {Promise|string} The returned or resolved string will probably be empty
+  * @param {?import('./typedefs.js').Host} [host]
+  * @returns {Promise<string>|string} The returned or resolved string will
+  *   probably be empty
   */
   rename (domain, oldKey, newKey, host) {
     if (domain && typeof domain === 'object') {
@@ -718,23 +882,34 @@ class MacOSDefaults extends Spawn {
         ({new_key: newKey} = domain);
       }
     }
-    const args = [], methodName = 'rename';
-    checkKey({key: oldKey, methodName});
-    checkKey({key: newKey, methodName});
+
+    /** @type {string[]} */
+    const args = [];
+    const methodName = 'rename';
+    checkKey({key: /** @type {string} */ (oldKey), methodName});
+    checkKey({key: /** @type {string} */ (newKey), methodName});
     const hostAndDomain = checkHostAndDomain({
       domain, host, optionalDomain: false, methodName
     });
     addHostMethodAndDomain({args, hostAndDomain, methodName});
-    args.push(quoteAndEscapeDoubleQuotes(oldKey), quoteAndEscapeDoubleQuotes(newKey));
+    args.push(
+      quoteAndEscapeDoubleQuotes(/** @type {string} */ (oldKey)),
+      quoteAndEscapeDoubleQuotes(/** @type {string} */ (newKey))
+    );
     return this.defaults(undefined, ...args);
   }
 
   /**
-  * @param {?(DomainWithHost|Domain|KeyDeleteAllObject)} [domain]
-  * @property {boolean} [domain.deleteAll=false] This required in our API to get the potential foot-gun behavior of deleting everything. This property is only available through the object API.
-  * @param {string} [key]
-  * @param {?Host} [host]
-  * @returns {Promise|string} The returned or resolved string will probably be empty
+  * @param {?(import('./typedefs.js').DomainWithHost|
+  * import('./typedefs.js').Domain|
+  * import('./typedefs.js').KeyDeleteAllObject)} [domain]
+  * @param {boolean} [domain.deleteAll] This required in our API
+  *   to get the potential foot-gun behavior of deleting everything. This
+  *   property is only available through the object API.
+  * @param {string|null} [key]
+  * @param {?import('./typedefs.js').Host} [host]
+  * @returns {Promise<string>|string} The returned or resolved string will
+  *   probably be empty
   */
   delete (domain, key, host) {
     let deleteAll = false;
@@ -757,8 +932,8 @@ class MacOSDefaults extends Spawn {
   }
 
   /**
-  * @param {?Host} [host]
-  * @returns {Promise|string[]} The matching domains as an array of strings
+  * @param {?import('./typedefs.js').Host} [host]
+  * @returns {Promise<string>|string[]} The matching domains as an array of strings
   */
   domains (host) {
     const args = [], methodName = 'domains';
@@ -767,10 +942,11 @@ class MacOSDefaults extends Spawn {
     return this.defaults({returnType: 'commaSeparated'}, ...args);
   }
   /**
-  * @param {string|WordObject} word The word to find
-  * @param {?Host} [host]
+  * @param {string|import('./typedefs.js').WordObject} word The word to find
+  * @param {?import('./typedefs.js').Host} [host]
   * @throws {TypeError}
-  * @returns {Promise|FindResults} Returns or resolves to the parsed find results
+  * @returns {Promise|import('./typedefs.js').FindResults} Returns or resolves
+  *   to the parsed find results
   */
   find (word, host) {
     let currentHost;
@@ -788,8 +964,8 @@ class MacOSDefaults extends Spawn {
   }
 
   /**
-  * @param {?Host} [host]
-  * @returns {Promise|string} Returns or resolves as the help results
+  * @param {?import('./typedefs.js').Host} [host]
+  * @returns {Promise<string>|string} Returns or resolves as the help results
   */
   help (host) {
     const args = [], methodName = 'help';
@@ -799,11 +975,18 @@ class MacOSDefaults extends Spawn {
   }
 
   /**
-  * @param {DomainWithHost|Domain|ImportPlistPathObject} domain
-  * @param {string|stream.Readable|MockStreamInput} [pathToPlist] If an object, it must have a `input` property and will be supplied as stdin; likewise if supplied a `Stream`; if a string, it must point to the path to a plist file.
-  * @param {?Host} [host] (Not shown in `defaults help`)
+  * @param {import('./typedefs.js').DomainWithHost|
+  *   import('./typedefs.js').Domain|
+  *   import('./typedefs.js').ImportPlistPathObject} domain
+  * @param {string|import('node:stream').Readable|
+  *   import('./typedefs.js').MockStreamInput} [pathToPlist] If an
+  *   object, it must have a `input` property and will be supplied as
+  *   stdin; likewise if supplied a `Stream`; if a string, it must point
+  *   to the path to a plist file.
+  * @param {?import('./typedefs.js').Host} [host] (Not shown in `defaults help`)
   * @throws {TypeError}
-  * @returns {Promise|string} The returned or resolved string will probably be empty
+  * @returns {Promise<string>|string} The returned or resolved string will
+  *   probably be empty
   */
   import (domain, pathToPlist, host) {
     if (domain && typeof domain === 'object') {
@@ -816,7 +999,9 @@ class MacOSDefaults extends Spawn {
       typeof pathToPlist.input === 'string'); // Our custom "stream"
 
     if (!isStream && (typeof pathToPlist !== 'string' || !pathToPlist)) {
-      throw new TypeError('`import` must be provided with a path to a plist or -');
+      throw new TypeError(
+        '`import` must be provided with a path to a plist or -'
+      );
     }
     const args = [], methodName = 'import';
     const hostAndDomain = checkHostAndDomain({
@@ -835,11 +1020,13 @@ class MacOSDefaults extends Spawn {
   }
 
   /**
-  * @param {DomainWithHost|Domain|ExportPlistPathObject} domain
+  * @param {import('./typedefs.js').DomainWithHost|
+  *   import('./typedefs.js').Domain|
+  *   import('./typedefs.js').ExportPlistPathObject} domain
   * @param {string} [pathToPlist]
-  * @param {?Host} [host] Is this allowed here?
+  * @param {?import('./typedefs.js').Host} [host] Is this allowed here?
   * @throws {TypeError}
-  * @returns {Promise|string} The XML string
+  * @returns {Promise<string>|string} The XML string
   */
   export (domain, pathToPlist, host) {
     if (domain && typeof domain === 'object') {
@@ -848,7 +1035,9 @@ class MacOSDefaults extends Spawn {
       }
     }
     if (typeof pathToPlist !== 'string' || !pathToPlist) {
-      throw new TypeError('`export` must be provided with a path to a plist or -');
+      throw new TypeError(
+        '`export` must be provided with a path to a plist or -'
+      );
     }
     const args = [], methodName = 'export';
     const hostAndDomain = checkHostAndDomain({
@@ -859,22 +1048,45 @@ class MacOSDefaults extends Spawn {
     return this.spawn(undefined, ...args);
   }
 
+  /**
+   *
+   * @param {{
+   *   stream?: import('node:stream').Readable | undefined
+   * }} [opts]
+   * @param {...any} args
+   * @returns {string | Promise<string>}
+   */
   spawn (opts, ...args) {
-    return super.spawn(Object.assign({cmd: 'defaults'}, opts), ...args);
+    return super.spawn({cmd: 'defaults', ...opts}, ...args);
   }
 
+  /**
+   *
+   * @param opts
+   * @param {...any} args
+   * @returns {}
+   */
   spawnAsync (opts, ...args) {
-    return super.spawnAsync(Object.assign({cmd: 'defaults'}, opts), ...args);
+    return super.spawnAsync({cmd: 'defaults', ...opts}, ...args);
   }
 
+  /**
+   *
+   * @param opts
+   * @param {...any} args
+   * @returns {}
+   */
   spawnSync (opts, ...args) {
-    return super.spawnSync(Object.assign({cmd: 'defaults'}, opts), ...args);
+    return super.spawnSync({cmd: 'defaults', ...opts}, ...args);
   }
 
   /**
   * @param {...*} args
   * @throws {Error}
-  * @returns {Promise|string} Returns or resolves with stdout and if a Promise, rejects with an `Error` object set to the stderr or with the event of a `spawn` `error` event; may also reject with an error thrown by {@link module:MacOSDefaults~convertReturnType}
+  * @returns {Promise<string>|string} Returns or resolves with stdout and if a
+  *   Promise, rejects with an `Error` object set to the stderr or with
+  *   the event of a `spawn` `error` event; may also reject with an error
+  *   thrown by {@link module:MacOSDefaults~convertReturnType}
   */
   defaults (...args) {
     if (this.sync) {
@@ -884,18 +1096,26 @@ class MacOSDefaults extends Spawn {
   }
 
   /**
-  * @param {object|undefined} [cfg]
-  * @param {boolean} [cfg.hexAsArrays=false]
-  * @param {?ReturnType} [cfg.returnType]
+  * @param {object} [cfg]
+  * @param {boolean} [cfg.hexAsArrays]
+  * @param {?import('./typedefs.js').ReturnType} [cfg.returnType]
   * @param {...*} args
-  * @returns {Promise} Resolves with stdout and rejects with an `Error` object set to the stderr or with the event of a `spawn` `error` event; may also reject with an error thrown by {@link module:MacOSDefaults~convertReturnType}
+  * @returns {Promise<import("./typedefs.js").DefaultsResult>} Resolves with
+  *   stdout and rejects with an `Error`
+  *   object set to the stderr or with the event of a `spawn` `error`
+  *   event; may also reject with an error thrown by
+  *   {@link module:MacOSDefaults~convertReturnType}
   */
-  defaultsAsync ({hexAsArrays = this.jsonResults, returnType = null} = {}, ...args) {
+  defaultsAsync (
+    {hexAsArrays = this.jsonResults, returnType = null} = {}, ...args
+  ) {
     if (this.debug) {
-      const command = 'defaults '+ args.join(' ');
+      const command = 'defaults ' + args.join(' ');
       console.log(command);
       return Promise.resolve(command);
     }
+
+    // eslint-disable-next-line promise/avoid-new -- Promisify?
     return new Promise((resolve, reject) => {
       if (this.log) {
         console.log('args', args);
@@ -915,7 +1135,8 @@ class MacOSDefaults extends Spawn {
       def.on('error', (err) => {
         reject(err);
       });
-      // Todo: Or do we want `exit` which waits for stdio to finish regardless if shared with other processes?
+      // Todo: Or do we want `exit` which waits for stdio to finish
+      // regardless if shared with other processes?
       def.on('close', (code) => {
         // Todo: Could there be a `stderr` here?
         if (stderr) {
@@ -924,39 +1145,46 @@ class MacOSDefaults extends Spawn {
           return;
         }
         if (code) {
-          const err = new Error(`child process exited with code ${code}`);
+          // eslint-disable-next-line @stylistic/max-len -- Long
+          const err = /** @type {Error & {stderr: string, code: number|null}} */ (
+            new Error(`child process exited with code ${code}`)
+          );
           err.stderr = stderr;
           err.code = code;
           reject(err);
           return;
         }
         if (stdout) {
+          let out;
           try {
-            stdout = convertReturnType({hexAsArrays, stdout, returnType});
+            out = convertReturnType({hexAsArrays, stdout, returnType});
           } catch (err) {
             reject(err);
             return;
           }
-          resolve(stdout);
+          resolve(out);
           return;
         }
-        resolve();
+        resolve('');
         // resolve({stdout, stderr});
       });
     });
   }
 
   /**
-  * @param {object|undefined} [cfg]
-  * @param {boolean} [cfg.hexAsArrays=false]
-  * @param {?ReturnType} [cfg.returnType]
+  * @param {object} [cfg]
+  * @param {boolean} [cfg.hexAsArrays]
+  * @param {?import('./typedefs.js').ReturnType} [cfg.returnType]
   * @param {...*} args
   * @throws {Error}
-  * @returns {string} Provides stdout from the spawned process
+  * @returns {import('./typedefs.js').DefaultsResult} Provides stdout
+  *   from the spawned process
   */
-  defaultsSync ({hexAsArrays = this.jsonResults, returnType = null} = {}, ...args) {
-    if (this.debug){
-      const command  = 'defaults '+ args.join(' ');
+  defaultsSync (
+    {hexAsArrays = this.jsonResults, returnType = null} = {}, ...args
+  ) {
+    if (this.debug) {
+      const command = 'defaults ' + args.join(' ');
       console.log(command);
       return command;
     }
@@ -965,22 +1193,27 @@ class MacOSDefaults extends Spawn {
     }
     const proc = spawnSync('defaults', args, {
       shell: true,
-      encoding: 'utf-8',
-      maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large outputs like 'defaults find'
+      encoding: 'utf8',
+      // 10MB buffer for large outputs like 'defaults find'
+      maxBuffer: 10 * 1024 * 1024
     });
     if (proc.error) {
-      const err = new Error(proc.error);
+      const err = /** @type {Error & {code: number|null}} */ (proc.error);
       err.code = proc.status;
       throw err;
     }
     if (proc.status && proc.stderr) {
-      const err = new Error(proc.stderr);
+      const err = /** @type {Error & {code?: number}} */ (
+        new Error(proc.stderr)
+      );
       err.code = proc.status;
       throw err;
     }
-    let stdout = proc.stdout;
-    stdout = convertReturnType({hexAsArrays, stdout, returnType}); // May throw
-    return stdout;
+    const {stdout} = proc;
+    const out = convertReturnType({
+      hexAsArrays, stdout, returnType
+    }); // May throw
+    return out;
   }
 }
 

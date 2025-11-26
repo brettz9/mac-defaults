@@ -1,5 +1,7 @@
 # mac-defaults
 
+An updated fork of [macos-defaults](https://github.com/tarranjones/macOS-defaults).
+
 ## Installation
 
 ```
@@ -20,12 +22,14 @@ For more on the specifics, see the [API docs](https://rawgit.com/brettz9/mac-def
 ### read (synchronous)
 
 ```js
-const {MacOSDefaults} = require('mac-defaults');
+import {MacOSDefaults} from 'mac-defaults';
 const mod = new MacOSDefaults({sync: true});
 
 const arrayOfPaths = mod.read('com.apple.finder', 'GoToFieldHistory');
 // OR:
-const arrayOfPaths = mod.read({domain: 'com.apple.finder', key: 'GoToFieldHistory'});
+const arrayOfPaths2 = mod.read({
+  domain: 'com.apple.finder', key: 'GoToFieldHistory'
+});
 
 console.log(arrayOfPaths);
 ```
@@ -33,23 +37,22 @@ console.log(arrayOfPaths);
 ### read (asynchronous)
 
 ```js
-(async () => {
-
-const {MacOSDefaults} = require('mac-defaults');
+import {MacOSDefaults} from 'mac-defaults';
 const mod = new MacOSDefaults();
 
 const arrayOfPaths = await mod.read('com.apple.finder', 'GoToFieldHistory');
 // OR:
-const arrayOfPaths = await mod.read({domain: 'com.apple.finder', key: 'GoToFieldHistory'});
+const arrayOfPaths2 = await mod.read({
+  domain: 'com.apple.finder', key: 'GoToFieldHistory'
+});
 
 console.log(arrayOfPaths);
-
-})();
 ```
 
 ### write
 
 ```js
+import {MacOSDefaults} from 'mac-defaults';
 const mod = new MacOSDefaults();
 
 // 1. WHOLE FILE (STRING PLIST)
@@ -72,7 +75,9 @@ await mod.write({domain: 'com.example.subdomain', value: {a: '1'}});
 // Multiple arguments
 await mod.write('com.example.subdomain', ['a', ['string', '1']]);
 // Single object
-await mod.write({domain: 'com.example.subdomain', plist: ['a', ['string', '1']]});
+await mod.write({
+  domain: 'com.example.subdomain', plist: ['a', ['string', '1']]
+});
 
 // Simplified multiple arguments (for string only)
 await mod.write('com.example.subdomain', ['a', '1']);
@@ -81,9 +86,13 @@ await mod.write({domain: 'com.example.subdomain', plist: ['a', '1']});
 
 // 4. KEY-VALUE (OBJECT-BASED)
 // Multiple arguments
-await mod.write('com.example.subdomain', {key: 'a', value: '1', type: 'string'});
+await mod.write('com.example.subdomain', {
+  key: 'a', value: '1', type: 'string'
+});
 // Single object
-await mod.write({domain: 'com.example.subdomain', key: 'a', value: '1', type: 'string'});
+await mod.write({
+  domain: 'com.example.subdomain', key: 'a', value: '1', type: 'string'
+});
 ```
 
 ### `readType` / `read-type`
@@ -94,7 +103,9 @@ Returns the type, e.g., "dictionary", "string", etc.
 // Multiple arguments
 await mod.readType('com.apple.finder', 'GoToFieldHistory'); // "array"
 // Single object
-await mod.readType({domain: 'com.apple.finder', key: 'GoToFieldHistory'}); // "array"
+await mod.readType({
+  domain: 'com.apple.finder', key: 'GoToFieldHistory'
+}); // "array"
 ```
 
 ### `rename`
@@ -102,7 +113,9 @@ await mod.readType({domain: 'com.apple.finder', key: 'GoToFieldHistory'}); // "a
 // Multiple arguments
 await mod.rename('com.example.subdomain', 'oldKey', 'newKey');
 // Single object
-await mod.rename({domain: 'com.example.subdomain', oldKey: 'oldKey', newKey: 'newKey'});
+await mod.rename({
+  domain: 'com.example.subdomain', oldKey: 'oldKey', newKey: 'newKey'
+});
 ```
 
 ### `delete`
@@ -152,7 +165,7 @@ For the plist argument, may also accept a string path or "-".
 // Multiple arguments
 const resultXML = await mod.export('com.apple.finder', '-');
 // Single object
-const resultXML = await mod.export({domain: 'com.apple.finder', plist: '-'});
+const resultXML2 = await mod.export({domain: 'com.apple.finder', plist: '-'});
 ```
 
 ## Other exports within `MacOSDefaults`
@@ -160,7 +173,7 @@ const resultXML = await mod.export({domain: 'com.apple.finder', plist: '-'});
 ### `jsToPropertyListXML`
 
 ```js
-const {jsToPropertyListXML} = require('mac-defaults');
+import {jsToPropertyListXML} from 'mac-defaults';
 ```
 
 Builds a property list XML string.
@@ -170,7 +183,7 @@ See [the API](https://rawgit.com/brettz9/mac-defaults/master/docs/jsdoc/mac-defa
 ### `jsToAsciiPropertyList`
 
 ```js
-const {jsToAsciiPropertyList} = require('mac-defaults');
+import {jsToAsciiPropertyList} from 'mac-defaults';
 ```
 
 Accepts JavaScript or JSON object with string, number, array, Uint8Arrays, or objects and converts to an old-style ASCII property list.
@@ -180,7 +193,7 @@ See [the API](https://rawgit.com/brettz9/mac-defaults/master/docs/jsdoc/mac-defa
 ### `parseFindResults`
 
 ```js
-const {parseFindResults} = require('mac-defaults');
+import {parseFindResults} from 'mac-defaults';
 ```
 
 Accepts a string in the non-exclusively-Property-List results format returned by
@@ -189,22 +202,20 @@ instead of `Uint8Array`s.
 
 See [the API](https://rawgit.com/brettz9/mac-defaults/master/docs/jsdoc/mac-defaults/1.0.1/module-MacOSDefaults.html#.parseFindResults) for usage.
 
-## Other files
-
-### `PlistParser.js`
+### `PlistParser`
 
 ```js
-const parser = require('mac-defaults/PlistParser')
+import {PlistParser} from 'mac-defaults';
 ```
 
 The class used internally by `MacOSDefaults` to parse old-style ASCII property lists.
 
 See [the API](https://rawgit.com/brettz9/mac-defaults/master/docs/jsdoc/mac-defaults/1.0.1/module-PlistParser-PlistParser.html) for usage.
 
-### `getParsedIORegInfo.js`
+### `getParsedIORegInfo`
 
 ```js
-const getParsedIORegInfo = require('mac-defaults/getParsedIORegInfo')
+import {getParsedIORegInfo} from 'mac-defaults';
 ```
 
 Allows parsing results from `ioreg -rd1 -c IOPlatformExpertDevice` (used in

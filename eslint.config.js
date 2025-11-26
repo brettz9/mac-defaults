@@ -1,28 +1,34 @@
-export default [
+import ashNazg from 'eslint-config-ash-nazg';
+
+export default /** @type {import('eslint').Linter.Config} */ ([
   {
     ignores: [
+      // '.idea',
+      'dist',
       'docs/jsdoc'
     ]
   },
+  ...ashNazg(['sauron', 'node']),
   {
-    "extends": "eslint:recommended",
-    "parserOptions": {
-      "ecmaVersion": 2017,
-      "sourceType": "module"
+    files: ['*.md/*.js'],
+    languageOptions: {
+      globals: {
+        mod: 'readonly'
+      }
     },
-    "env": {
-      "node": true,
-      "es6": true
-    },
-    "rules": {
-      "semi": [2, "always"],
-      "indent": ["error", 2, {"outerIIFEBody": 0}],
-      "object-property-newline": 0,
-      "one-var": 0,
-      "no-var": 2,
-      "prefer-const": 2,
-      "no-extra-semi": 2,
-      "quotes": ["error", "single", {"allowTemplateLiterals": true, "avoidEscape": true}]
+    rules: {
+      'import/unambiguous': 0,
+      'import/no-unresolved': ['error', {ignore: ['mac-defaults']}],
+      'no-console': 0,
+      'no-shadow': 0,
+      'no-unused-vars': 0
+    }
+  },
+  {
+    rules: {
+      // Disable for now
+      'prefer-named-capture-group': 0,
+      'jsdoc/reject-any-type': 0
     }
   }
-];
+]);

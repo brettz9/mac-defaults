@@ -1,8 +1,10 @@
+/* eslint-disable unicorn/no-empty-file, import/unambiguous -- Typedefs */
 /**
-* @typedef {HostInfo|object} HostAndDomain
-* @property {boolean} globalDomain
-* @property {string} app
-* @property {string} domainString
+ * @typedef {HostInfo & {
+ *   globalDomain: boolean,
+ *   app: string,
+ *   domainString: string
+ * }} HostAndDomain
 */
 
 /**
@@ -35,7 +37,7 @@
 */
 
 /**
-* @typedef {Array|object|string|number[]|Uint8Array} DefaultsResult
+* @typedef {Array|object|string|number[]|Uint8Array|undefined} DefaultsResult
 */
 
 /**
@@ -64,35 +66,35 @@
 */
 
 /**
-* @typedef {Array} ReducedValue
-* @property {PropertyListType} 0 type: The valid type string
-* @property {string[]} 1 escapedValueArgs: The escaped value arguments (as a 1-item array, or possibly more for dicts/arrays)
-* @property {boolean} 2 defaultString: Whether the default format was used (no explicit type)
-*/
+ * The valid type string, the escaped value arguments (as a 1-item array,
+ *   or possibly more for dicts/arrays), whether the default format was
+ *   used (no explicit type).
+ * @typedef {[PropertyListType, string[], boolean]} ReducedValue
+ */
 
 /**
 * @typedef {"hex"|"int"|"bool"|"real"} PropertyListTypeAlias
 */
 
 /**
-* @typedef {"string"|"data"|"integer"|"float"|"boolean"|"date"|"array"|"array-add"|"dict"|"dict-add"|PropertyListTypeAlias} PropertyListType
-*/
+ * @typedef {"string"|"data"|"integer"|"float"|"boolean"|"date"|
+ *    "array"|"array-add"|"dict"|"dict-add"|PropertyListTypeAlias
+ * } PropertyListType
+ */
 
 /**
 * @typedef {boolean|number|Date|DefaultsResult} DefaultsInput
 */
 
 /**
-* @typedef {string|Array} PropertyListValue If a string is provided, the type will be assumed to be a string
-* @property {PropertyListType} 0 The type
-* @property {DefaultsInput} 1 The value
-*/
+ * @typedef {string|[PropertyListType, DefaultsInput]} PropertyListValue If a
+ *  string is provided, the type will be assumed to be a string
+ */
 
 /**
-* @typedef {Array} PropertyListArray
-* @property {string} 0 The key
-* @property {PropertyListValue} 1 The value
-*/
+ * The key and value.
+ * @typedef {[string, PropertyListValue]} PropertyListArray
+ */
 
 /**
 * @typedef {object} PropertyListObject
@@ -100,8 +102,9 @@
 */
 
 /**
-* @typedef {string|PropertyListObject|PlistKeyValue|PropertyListArray} PropertyListOrKeyValue If a string, must be non-empty.
-*/
+ * @typedef {string|PropertyListObject|PlistKeyValue|
+ *  PropertyListArray} PropertyListOrKeyValue If a string, must be non-empty.
+ */
 
 /**
 * @typedef {object} PlistStringObject
@@ -173,7 +176,7 @@
 * @typedef ParsedIORegResult
 * @property {boolean} isNode
 * @property {string|null} ioServiceName
-* @property {string} ioServiceLocation
+* @property {string|null} ioServiceLocation
 * @property {string} ioServiceClass
 * @property {Integer} id
 * @property {boolean} registered
@@ -182,5 +185,5 @@
 * @property {Integer} busyTime
 * @property {Integer} accumulatedBusyTime
 * @property {Integer|null} retainCount
-* @property {string} info
+* @property {DefaultsResult} info
 */
