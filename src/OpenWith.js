@@ -17,7 +17,7 @@ class OpenWith extends XAttr {
   /**
    *
    * @param {string} file
-   * @param {any} opts
+   * @param {any} [opts]
    * @returns {any}
    */
   getSync (file, opts) {
@@ -32,7 +32,7 @@ class OpenWith extends XAttr {
   /**
    *
    * @param {string} file
-   * @param {any} opts
+   * @param {any} [opts]
    * @returns {Promise<any>}
    */
   async getAsync (file, opts) {

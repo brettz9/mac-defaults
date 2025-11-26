@@ -1,5 +1,9 @@
 # mac-defaults CHANGES
 
+## ?
+
+- fix(types): make OpenWith opts optional
+
 ## 2.0.0
 
 ### User-facing
