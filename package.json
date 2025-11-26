@@ -9,9 +9,16 @@
   "license": "MIT",
   "type": "module",
   "main": "src/index.js",
+  "types": "./dist/index.d.cts",
   "exports": {
-    "import": "./src/index.js",
-    "require": "./dist/index.cjs"
+    "import": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "require": {
+      "types": "./dist/index.d.cts",
+      "default": "./dist/index.cjs"
+    }
   },
   "scripts": {
     "jsdoc": "jsdoc --private --pedantic --configure jsdoc.conf.json . README.md package.json",

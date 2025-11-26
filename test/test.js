@@ -232,11 +232,20 @@ test(
 test(`defaults read -globalDomain`, async (t) => {
   const mod = new MacOSDefaults();
   let readInfo = await mod.read({g: true});
-  t.true(readInfo && 'AppleLanguages' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'AppleLanguages' in readInfo
+  );
   readInfo = await mod.read({globalDomain: true});
-  t.true(readInfo && 'AppleLanguages' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'AppleLanguages' in readInfo
+  );
   readInfo = await mod.read({NSGlobalDomain: true});
-  t.true(readInfo && 'AppleLanguages' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'AppleLanguages' in readInfo
+  );
 });
 test(`defaults read -globalDomain key`, async (t) => {
   const mod = new MacOSDefaults();
@@ -252,7 +261,11 @@ test(`defaults read -globalDomain key (single object)`, async (t) => {
 test(`defaults read -app application`, async (t) => {
   const mod = new MacOSDefaults();
   const readInfo = await mod.read({app: 'TextEdit'});
-  t.true(readInfo && 'NSWindow Frame NSNavPanelAutosaveName' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) &&
+    'NSWindow Frame NSNavPanelAutosaveName' in readInfo
+  );
 });
 test(`defaults read -app application key`, async (t) => {
   const mod = new MacOSDefaults();
@@ -553,8 +566,12 @@ test(`defaults write domain plist object valid object content`, async (t) => {
   }});
   t.true(existsSync(plistPath), 'Path should now exist');
   // await mod.write(domain, 'key4', ['hex', '123abcdef']);
+  // eslint-disable-next-line @stylistic/max-len -- Long
+  // @ts-expect-error - array is valid value format when plistOrKeyValue is a string key
   await mod.write(domain, 'key6', ['real', 32]);
   // Float rounding done differently depending on how added!
+  // eslint-disable-next-line @stylistic/max-len -- Long
+  // @ts-expect-error - array is valid value format when plistOrKeyValue is a string key
   await mod.write(domain, 'key7', ['real', 32.3]);
 
   const resultXML = plutilToXML(plistPath);
@@ -782,6 +799,7 @@ test(`Erring: defaults write; bad key type (single object)`, (t) => {
   const mod = new MacOSDefaults();
   // Domain not used, only plistPath
   const [domain, plistPath] = getSamplePlistFile();
+  // @ts-expect-error - Deliberately testing bad type
   const {message} = t.throws(() => mod.write({domain, key: 500}));
   t.true(message.includes('The key supplied to write must be a string.'));
 });
@@ -796,6 +814,7 @@ test(`Erring: defaults write; non-object/non-string/non-array plist`, (t) => {
   });
   t.true(message.includes('must be provided with a non-empty plist string or'));
   ({message} = t.throws(() => {
+    // @ts-expect-error - Deliberately testing bad type
     return mod.write({domain, plist: 500});
   }));
   t.true(message.includes('must be provided with a non-empty plist string or'));
@@ -805,17 +824,21 @@ test(`Erring: defaults write; plist arrays must be length two`, (t) => {
   // Domain not used, only plistPath
   const [domain, plistPath] = getSamplePlistFile();
   let {message} = t.throws(() => {
+    // @ts-expect-error - Deliberately testing bad array length
     return mod.write(domain, ['key']);
   });
   t.true(message.includes('Plist arrays passed to `write` must be length 2'));
   ({message} = t.throws(() => {
+    // @ts-expect-error - Deliberately testing bad array as plist
     return mod.write({domain, plist: ['key']});
   }));
   ({message} = t.throws(() => {
+    // @ts-expect-error - Deliberately testing empty array
     return mod.write(domain, []);
   }));
   t.true(message.includes('Plist arrays passed to `write` must be length 2'));
   ({message} = t.throws(() => {
+    // @ts-expect-error - Deliberately testing empty array as plist
     return mod.write({domain, plist: []});
   }));
   t.true(message.includes('Plist arrays passed to `write` must be length 2'));
@@ -829,6 +852,7 @@ test(
     // Domain not used, only plistPath
     const [domain, plistPath] = getSamplePlistFile();
     let {message} = t.throws(() => {
+      // @ts-expect-error - Deliberately testing invalid value type
       return mod.write(domain, ['key', 555]);
     });
     t.true(
@@ -960,6 +984,7 @@ test(
     const [domain, plistPath] = getSamplePlistFile();
     t.false(existsSync(plistPath), 'Path should not exist');
     const {message} = await t.throws(
+      // @ts-expect-error - Deliberately testing bad host type
       () => mod.write(domain, 'a', true)
     );
     t.true(
@@ -978,6 +1003,7 @@ test(
     const [domain, plistPath] = getSamplePlistFile();
     t.false(existsSync(plistPath), 'Path should not exist');
     const {message} = await t.throws(
+      // @ts-expect-error - Deliberately testing bad plist type
       () => mod.write(domain, true)
     );
     t.true(
@@ -994,6 +1020,7 @@ test(`Erring: defaults write domain plist object; bad input`, async (t) => {
   const [domain, plistPath] = getSamplePlistFile();
   t.false(existsSync(plistPath), 'Path should not exist');
   const {message} = await t.throws(
+    // @ts-expect-error - Deliberately testing bad property
     () => mod.write(domain, {noValue: 1})
   );
   t.true(
@@ -1010,6 +1037,7 @@ test(
     const [domain, plistPath] = getSamplePlistFile();
     t.false(existsSync(plistPath), 'Path should not exist');
     const {message} = await t.throws(
+      // @ts-expect-error - Deliberately testing extra property
       () => mod.write(domain, {value: 1, extraProperty: 1})
     );
     t.true(
@@ -1031,6 +1059,7 @@ test(`Erring: jsToPropertyListXML; bad object values`, async (t) => {
   ));
   t.true(message.includes('Invalid date.'));
   ({message} = await t.throws(
+    // @ts-expect-error - Deliberately testing symbol type
     () => jsToPropertyListXML(Symbol('bad'))
   ));
   t.true(
@@ -1286,10 +1315,12 @@ test(`Erring: defaults rename; bad key type (single object)`, (t) => {
   // Domain not used, only plistPath
   const [domain, plistPath] = getSamplePlistFile();
   let {message} = t.throws(
+    // @ts-expect-error - Deliberately testing bad key type
     () => mod.rename({domain, oldKey: 500, newKey: 'abc'})
   );
   t.true(message.includes('The key supplied to rename must be a string.'));
   ({message} = t.throws(
+    // @ts-expect-error - Deliberately testing bad key type
     () => mod.rename({domain, oldKey: 'abc', newKey: 500})
   ));
   t.true(message.includes('The key supplied to rename must be a string.'));
@@ -2264,6 +2295,7 @@ test(`Erring: defaults delete; bad key type (single object)`, (t) => {
   const mod = new MacOSDefaults();
   // Domain not used, only plistPath
   const [domain, plistPath] = getSamplePlistFile();
+  // @ts-expect-error - Deliberately testing bad key type
   const {message} = t.throws(() => mod.delete({domain, key: 500}));
   t.true(message.includes('The key supplied to delete must be a string'));
 });
@@ -2271,19 +2303,25 @@ test(`Erring: defaults delete; bad key type (single object)`, (t) => {
 test(`defaults read domain`, async (t) => {
   const mod = new MacOSDefaults();
   const readInfo = await mod.read('com.apple.finder');
-  t.true(readInfo && 'TrashViewSettings' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'TrashViewSettings' in readInfo
+  );
 });
 
 test(`defaults read domain (single object)`, async (t) => {
   const mod = new MacOSDefaults();
   const readInfo = await mod.read({domain: 'com.apple.finder'});
-  t.true(readInfo && 'TrashViewSettings' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'TrashViewSettings' in readInfo
+  );
 });
 
 test(`defaults read domain key`, async (t) => {
   const mod = new MacOSDefaults();
   const readInfo = await mod.read('com.apple.finder', 'TrashViewSettings');
-  t.true(readInfo &&
+  t.true(readInfo && typeof readInfo === 'object' && !Array.isArray(readInfo) &&
     'CustomViewStyleVersion' in readInfo &&
     'WindowState' in readInfo);
 });
@@ -2291,7 +2329,7 @@ test(`defaults read domain key (single object)`, async (t) => {
   const mod = new MacOSDefaults();
   const readInfo = await mod.read({domain:
     'com.apple.finder', key: 'TrashViewSettings'});
-  t.true(readInfo &&
+  t.true(readInfo && typeof readInfo === 'object' && !Array.isArray(readInfo) &&
     'CustomViewStyleVersion' in readInfo &&
     'WindowState' in readInfo);
 });
@@ -2301,14 +2339,20 @@ test(`defaults -currentHost read domain`, async (t) => {
   const readInfo = await mod.read(
     'com.apple.screensaver', null, {currentHost: true}
   );
-  t.true(readInfo && 'moduleDict' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'moduleDict' in readInfo
+  );
 });
 test(`defaults -currentHost read domain (single object)`, async (t) => {
   const mod = new MacOSDefaults();
   const readInfo = await mod.read(
     {domain: 'com.apple.screensaver', currentHost: true}
   );
-  t.true(readInfo && 'moduleDict' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'moduleDict' in readInfo
+  );
 });
 
 test(`defaults -currentHost read domain key`, async (t) => {
@@ -2316,32 +2360,44 @@ test(`defaults -currentHost read domain key`, async (t) => {
   const readInfo = await mod.read(
     'com.apple.screensaver', 'moduleDict', {currentHost: true}
   );
-  t.true(readInfo && 'moduleName' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'moduleName' in readInfo
+  );
 });
 test(`defaults -currentHost read domain key (single object)`, async (t) => {
   const mod = new MacOSDefaults();
   const readInfo = await mod.read(
     {domain: 'com.apple.screensaver', key: 'moduleDict', currentHost: true}
   );
-  t.true(readInfo && 'moduleName' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'moduleName' in readInfo
+  );
 });
 
 test(`defaults -host hostname read domain`, async (t) => {
   const mod = new MacOSDefaults();
   const readInfo = await mod.read('com.apple.finder', null, host);
-  t.true(readInfo && 'TrashViewSettings' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'TrashViewSettings' in readInfo
+  );
 });
 test(`defaults -host hostname read domain (single object)`, async (t) => {
   const mod = new MacOSDefaults();
   const readInfo = await mod.read({host, domain: 'com.apple.finder'});
-  t.true(readInfo && 'TrashViewSettings' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'TrashViewSettings' in readInfo
+  );
 });
 test(`defaults -host hostname read domain key`, async (t) => {
   const mod = new MacOSDefaults();
   const readInfo = await mod.read(
     'com.apple.finder', 'TrashViewSettings', host
   );
-  t.true(readInfo &&
+  t.true(readInfo && typeof readInfo === 'object' && !Array.isArray(readInfo) &&
     'CustomViewStyleVersion' in readInfo &&
     'WindowState' in readInfo);
 });
@@ -2350,7 +2406,7 @@ test(`defaults -host hostname read domain key (single object)`, async (t) => {
   const readInfo = await mod.read(
     {host, domain: 'com.apple.finder', key: 'TrashViewSettings'}
   );
-  t.true(readInfo &&
+  t.true(readInfo && typeof readInfo === 'object' && !Array.isArray(readInfo) &&
     'CustomViewStyleVersion' in readInfo &&
     'WindowState' in readInfo);
 });
@@ -2358,18 +2414,24 @@ test(`defaults -host hostname read domain key (single object)`, async (t) => {
 test(`defaults -host hostname read-sync domain`, (t) => {
   const mod = new MacOSDefaults({sync: true});
   const readInfo = mod.read('com.apple.finder', null, host);
-  t.true(readInfo && 'TrashViewSettings' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'TrashViewSettings' in readInfo
+  );
 });
 test(`defaults -host hostname read-sync domain (single object)`, (t) => {
   const mod = new MacOSDefaults({sync: true});
   const readInfo = mod.read({domain: 'com.apple.finder', host});
-  t.true(readInfo && 'TrashViewSettings' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'TrashViewSettings' in readInfo
+  );
 });
 
 test(`defaults -host hostname read-sync domain key`, (t) => {
   const mod = new MacOSDefaults({sync: true});
   const readInfo = mod.read('com.apple.finder', 'TrashViewSettings', host);
-  t.true(readInfo &&
+  t.true(readInfo && typeof readInfo === 'object' && !Array.isArray(readInfo) &&
     'CustomViewStyleVersion' in readInfo &&
     'WindowState' in readInfo);
 });
@@ -2378,7 +2440,7 @@ test(`defaults -host hostname read-sync domain key (single object)`, (t) => {
   const readInfo = mod.read(
     {host, domain: 'com.apple.finder', key: 'TrashViewSettings'}
   );
-  t.true(readInfo &&
+  t.true(readInfo && typeof readInfo === 'object' && !Array.isArray(readInfo) &&
     'CustomViewStyleVersion' in readInfo &&
     'WindowState' in readInfo);
 });
@@ -2386,18 +2448,24 @@ test(`defaults -host hostname read-sync domain key (single object)`, (t) => {
 test(`defaults read-sync domain`, (t) => {
   const mod = new MacOSDefaults({sync: true});
   const readInfo = mod.read('com.apple.finder');
-  t.true(readInfo && 'TrashViewSettings' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'TrashViewSettings' in readInfo
+  );
 });
 test(`defaults read-sync domain (single object)`, (t) => {
   const mod = new MacOSDefaults({sync: true});
   const readInfo = mod.read({domain: 'com.apple.finder'});
-  t.true(readInfo && 'TrashViewSettings' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'TrashViewSettings' in readInfo
+  );
 });
 
 test(`defaults read-sync domain key`, (t) => {
   const mod = new MacOSDefaults({sync: true});
   const readInfo = mod.read('com.apple.finder', 'TrashViewSettings');
-  t.true(readInfo &&
+  t.true(readInfo && typeof readInfo === 'object' && !Array.isArray(readInfo) &&
     'CustomViewStyleVersion' in readInfo &&
     'WindowState' in readInfo);
 });
@@ -2405,7 +2473,7 @@ test(`defaults read-sync domain key (single object)`, (t) => {
   const mod = new MacOSDefaults({sync: true});
   const readInfo = mod.read({domain:
     'com.apple.finder', key: 'TrashViewSettings'});
-  t.true(readInfo &&
+  t.true(readInfo && typeof readInfo === 'object' && !Array.isArray(readInfo) &&
     'CustomViewStyleVersion' in readInfo &&
     'WindowState' in readInfo);
 });
@@ -2415,14 +2483,20 @@ test(`defaults -currentHost read-sync domain`, (t) => {
   const readInfo = mod.read(
     'com.apple.screensaver', null, {currentHost: true}
   );
-  t.true(readInfo && 'moduleDict' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'moduleDict' in readInfo
+  );
 });
 test(`defaults -currentHost read-sync domain (single object)`, (t) => {
   const mod = new MacOSDefaults({sync: true});
   const readInfo = mod.read({
     domain: 'com.apple.screensaver', currentHost: true
   });
-  t.true(readInfo && 'moduleDict' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'moduleDict' in readInfo
+  );
 });
 
 test(`defaults -currentHost read-sync domain key`, (t) => {
@@ -2430,14 +2504,20 @@ test(`defaults -currentHost read-sync domain key`, (t) => {
   const readInfo = mod.read(
     'com.apple.screensaver', 'moduleDict', {currentHost: true}
   );
-  t.true(readInfo && 'moduleName' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'moduleName' in readInfo
+  );
 });
 test(`defaults -currentHost read-sync domain key (single object)`, (t) => {
   const mod = new MacOSDefaults({sync: true});
   const readInfo = mod.read(
     {domain: 'com.apple.screensaver', key: 'moduleDict', currentHost: true}
   );
-  t.true(readInfo && 'moduleName' in readInfo);
+  t.true(
+    readInfo && typeof readInfo === 'object' &&
+    !Array.isArray(readInfo) && 'moduleName' in readInfo
+  );
 });
 
 test(`Erring: defaults read; bad key type`, (t) => {
@@ -2450,6 +2530,7 @@ test(`Erring: defaults read; bad key type (single object)`, (t) => {
   const mod = new MacOSDefaults();
   const {
     message
+  // @ts-expect-error - Deliberately testing bad key type
   } = t.throws(() => mod.read({domain: 'com.apple.finder', key: 500}));
   t.true(message.includes('The key supplied to read must be a string'));
 });
@@ -2563,6 +2644,7 @@ test(`Erring: defaults read-type; bad key type (single object)`, (t) => {
   const mod = new MacOSDefaults();
   const {
     message
+  // @ts-expect-error - Deliberately testing bad key type
   } = t.throws(() => mod.readType({domain: 'com.apple.finder', key: 500}));
   t.true(message.includes('The key supplied to read-type must be a string.'));
 });
@@ -2717,6 +2799,7 @@ test(`Erring: defaults find; missing word`, (t) => {
 });
 test(`Erring: defaults find; missing word (single object)`, (t) => {
   const mod = new MacOSDefaults();
+  // @ts-expect-error - Deliberately testing bad word argument
   const {message} = t.throws(() => mod.find({}));
   t.true(message.includes('Find must be supplied a string word argument'));
 });
@@ -2840,6 +2923,7 @@ test(`Erring: defaults; bad host (missing property)`, (t) => {
 });
 test(`Erring: defaults; bad host (non-null/string/object)`, (t) => {
   const mod = new MacOSDefaults();
+  // @ts-expect-error - Deliberately testing bad host type
   const {message} = t.throws(() => mod.help({host: 55}));
   t.true(message.includes(
     'If host is not an object, host must either be ' +
@@ -2848,6 +2932,7 @@ test(`Erring: defaults; bad host (non-null/string/object)`, (t) => {
 });
 test(`Erring: defaults; bad domain (missing property)`, (t) => {
   const mod = new MacOSDefaults();
+  // @ts-expect-error - Deliberately testing bad domain type
   const {message} = t.throws(() => mod.read({domain: {}}));
   t.true(message.includes(
     'If domain is an object, it must have an `app` or ' +
@@ -2856,6 +2941,7 @@ test(`Erring: defaults; bad domain (missing property)`, (t) => {
 });
 test(`Erring: defaults; bad domain (non-string)`, (t) => {
   const mod = new MacOSDefaults();
+  // @ts-expect-error - Deliberately testing bad domain type
   const {message} = t.throws(() => mod.read({domain: 55}));
   t.true(message.includes(
     'If a global or app domain is not specified, a ' +

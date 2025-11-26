@@ -1,5 +1,12 @@
 /* eslint-disable unicorn/no-empty-file, import/unambiguous -- Typedefs */
 /**
+ * @typedef {object} HostInfo
+ * @property {boolean} [currentHost]
+ * @property {boolean} anyHost
+ * @property {string} hostString
+ */
+
+/**
  * @typedef {HostInfo & {
  *   globalDomain: boolean,
  *   app: string,
@@ -8,36 +15,40 @@
 */
 
 /**
-* @typedef {string|object} Domain
-* @property {string} app Non-empty string
-* @property {boolean} g Global domain
-* @property {boolean} globalDomain Alias of `g`
-* @property {boolean} NSGlobalDomain Alias of `g`
+ * `app` is a non-empty string
+ * g is for the Global domain
+ * globalDomain is an alias of `g`
+ * NSGlobalDomain is an alias of `g`.
+ * @typedef {{
+ *   app: string,
+ *   g: boolean,
+ *   globalDomain: boolean,
+ *   NSGlobalDomain: boolean
+ * }} DomainObject
+ */
+
+/**
+ * @typedef {string|Partial<DomainObject>} Domain
+ */
+
+/**
+ * @typedef {{
+ *   domain?: string|{
+ *     currentHost: boolean,
+ *     domain: Domain,
+ *     host: Host
+ *   },
+ *   host?: Host,
+ *   currentHost?: boolean
+ * }} DomainWithHost
+ */
+
+/**
+* @typedef {string|{currentHost?: boolean, host?: string}} Host
 */
 
 /**
-* @typedef {string|object} DomainWithHost
-* @property {object} domain
-* @property {boolean} domain.currentHost
-* @property {Domain} domain.domain
-* @property {Host} domain.host
-*/
-
-/**
-* @typedef {object|string} Host
-* @property {boolean} [currentHost]
-* @property {?string} [host]
-*/
-
-/**
-* @typedef {object} HostInfo
-* @property {boolean} currentHost
-* @property {boolean} anyHost
-* @property {string} hostString
-*/
-
-/**
-* @typedef {Array|object|string|number[]|Uint8Array|undefined} DefaultsResult
+* @typedef {any[]|object|string|number[]|Uint8Array|undefined} DefaultsResult
 */
 
 /**
@@ -87,7 +98,8 @@
 */
 
 /**
- * @typedef {string|[PropertyListType, DefaultsInput]} PropertyListValue If a
+ * @typedef {string|[PropertyListType, DefaultsInput]|
+ *   Record<string, any>} PropertyListValue If a
  *  string is provided, the type will be assumed to be a string
  */
 
@@ -112,46 +124,41 @@
 */
 
 /**
-* @typedef {object} PlistKeyValue
-* @property {string} key
-* @property {PropertyListValue} value
+ * @typedef {object} PlistKeyValue
+ * @property {string} [key]
+ * @property {PropertyListValue} value
+ * @property {PropertyListType} [type]
+ */
+
+/**
+ * @typedef {Partial<DomainWithHost> & Partial<DomainObject> & (
+ *   PlistStringObject|PlistKeyValue|PropertyListArray)} PList
+ */
+
+/**
+* @typedef {Host & {word: string}} WordObject
 */
 
 /**
-* @typedef {PlistStringObject|PlistKeyValue|PropertyListArray} PList
-* @mixes DomainWithHost
-* @mixes Domain
-*/
+ * @typedef {Partial<DomainWithHost> & Partial<DomainObject> &
+ *    {key: string}} KeyObject
+ */
 
 /**
-* @typedef {object} WordObject
-* @mixes Host
-* @property {string} word
-*/
-
-/**
-* @typedef {object} KeyObject
-* @mixes DomainWithHost
-* @mixes Domain
-* @property {string} key
-*/
-
-/**
-* @typedef {object} KeysObject
-* @mixes DomainWithHost
-* @mixes Domain
-* @property {string} oldKey
-* @property {string} newKey
-* @property {string} [old_key] Alias of oldKey
-* @property {string} [new_key] Alias of newKey
-*/
+ * `old_key` is an alias of oldKey
+ * new_key is an alias of newKey.
+ * @typedef {Partial<DomainWithHost> & Partial<DomainObject> & {
+ *   oldKey: string,
+ *   newKey: string,
+ *   old_key?: string,
+ *   new_key?: string
+ * }} KeysObject
+ */
 
 
 /**
-* @typedef {object} KeyDeleteAllObject
-* @mixes KeyObject
-* @property {boolean} [deleteAll]
-*/
+ * @typedef {KeyObject & {deleteAll?: boolean}} KeyDeleteAllObject
+ */
 
 /**
 * @typedef {object} MockStreamInput
@@ -159,21 +166,18 @@
 */
 
 /**
-* @typedef {object} ImportPlistPathObject
-* @mixes DomainWithHost
-* @mixes Domain
-* @property {string|stream.Readable|MockStreamInput} [plist]
-*/
+ * @typedef {Partial<DomainWithHost> & Partial<DomainObject> & {
+ *   plist?: string|import('node:stream').Readable|MockStreamInput
+ * }} ImportPlistPathObject
+ */
 
 /**
-* @typedef {object} ExportPlistPathObject
-* @mixes DomainWithHost
-* @mixes Domain
-* @property {string} [plist]
-*/
+ * @typedef {Partial<DomainWithHost> & Partial<DomainObject> &
+ *   {plist?: string}} ExportPlistPathObject
+ */
 
 /**
-* @typedef ParsedIORegResult
+* @typedef {object} ParsedIORegResult
 * @property {boolean} isNode
 * @property {string|null} ioServiceName
 * @property {string|null} ioServiceLocation

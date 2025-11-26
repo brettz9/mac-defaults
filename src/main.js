@@ -285,7 +285,7 @@ function reduceValue ({value: valArray}) { // , useUTCDates
       'valid type key.'
     );
   }
-  let [type, value] = valArray;
+  let [type, value] = /** @type {any[]} */ (valArray);
   switch (type) {
   case 'string': {
     if (typeof value !== 'string') {
@@ -485,7 +485,9 @@ function checkKey ({key, methodName}) {
 * @returns {import('./typedefs.js').HostInfo}
 */
 function checkHost ({host, methodName}) {
-  let currentHost = false, anyHost = false;
+  /** @type {boolean|undefined} */
+  let currentHost = false;
+  let anyHost = false;
   if (host && typeof host === 'object') {
     if ('currentHost' in host && !('host' in host)) {
       ({currentHost} = host);
@@ -510,24 +512,27 @@ function checkHost ({host, methodName}) {
       );
     }
   }
-  return {currentHost, anyHost, hostString: host};
+  return {currentHost, anyHost, hostString: host || ''};
 }
 
 /**
-* @private
-* @param {object} cfg
-* @param {?(DomainWithHost|Domain)} [cfg.domain]
-* @param {?Host} [cfg.host]
-* @param {string} cfg.methodName Used in error messages
-* @param {boolean} [cfg.optionalDomain] Whether to throw if the domain is
-*   missing
-* @throws {TypeError}
-* @returns {HostAndDomain}
-*/
+ * @private
+ * @param {object} cfg
+ * @param {?(import('./typedefs.js').DomainWithHost|
+ *  import('./typedefs.js').Domain)} [cfg.domain]
+ * @param {?import('./typedefs.js').Host} [cfg.host]
+ * @param {string} cfg.methodName Used in error messages
+ * @param {boolean} [cfg.optionalDomain] Whether to throw if the domain is
+ *   missing
+ * @throws {TypeError}
+ * @returns {import('./typedefs.js').HostAndDomain}
+ */
 function checkHostAndDomain ({domain, host, methodName, optionalDomain}) {
   if (domain && typeof domain === 'object' && 'domain' in domain) {
-    const {currentHost} = domain;
-    ({domain, host = {currentHost}} = domain);
+    /** @type {{currentHost?: boolean, domain?: any, host?: any}} */
+    const domainObj = domain;
+    const {currentHost} = domainObj;
+    ({domain, host = {currentHost}} = domainObj);
   }
   let globalDomain;
   let app;
@@ -544,7 +549,7 @@ function checkHostAndDomain ({domain, host, methodName, optionalDomain}) {
       return p in domain;
     })) {
       globalDomain = ['g', 'globalDomain', 'NSGlobalDomain'].some((p) => {
-        return domain[p];
+        return /** @type {any} */ (domain)[p];
       });
     } else {
       throw new TypeError(
@@ -566,20 +571,22 @@ function checkHostAndDomain ({domain, host, methodName, optionalDomain}) {
     }
   }
   const {currentHost, anyHost, hostString} = checkHost({host, methodName});
-  return {
-    globalDomain, app, domainString: domain,
+  return /** @type {import('./typedefs.js').HostAndDomain} */ ({
+    globalDomain: Boolean(globalDomain),
+    app: app || '',
+    domainString: typeof domain === 'string' ? domain : '',
     currentHost, anyHost, hostString
-  };
+  });
 }
 
 /**
-* @param {string} findString The raw string returned from `defaults find`
-* @param {object} [cfg] Configuration object
-* @param {boolean} [cfg.json] Whether to force the parsed results
-*   as JSON (or allow Uint8Arrays for hex)
-* @returns {FindResults} Returns an array of results or a single object
-*   with an `error` property set to the parser error
-*/
+ * @param {string} findString The raw string returned from `defaults find`
+ * @param {object} [cfg] Configuration object
+ * @param {boolean} [cfg.json] Whether to force the parsed results
+ *   as JSON (or allow Uint8Arrays for hex)
+ * @returns {import('./typedefs.js').FindResults} Returns an array of results
+ *   or a single object with an `error` property set to the parser error
+ */
 export const parseFindResults = function parseFindResults (
   findString, {json = false} = {}
 ) {
@@ -599,9 +606,10 @@ export const parseFindResults = function parseFindResults (
       results.push({message, keys, domain, result});
     }
     return results;
-  } catch (error) {
+  } catch (err) {
     // console.log('result', err);
     // console.log('global.err', domain, global.err);
+    const error = /** @type {TypeError|RangeError} */ (err);
     return {
       error
     };
@@ -623,12 +631,10 @@ export const parseFindResults = function parseFindResults (
 function convertReturnType ({returnType, hexAsArrays, stdout}) {
   switch (returnType) {
   case 'find': {
-    stdout = parseFindResults(stdout, {json: hexAsArrays});
-    break;
+    return parseFindResults(stdout, {json: hexAsArrays});
   }
   case 'commaSeparated': {
-    stdout = stdout.trim().split(', ');
-    break;
+    return stdout.trim().split(', ');
   }
   case 'readType': {
     stdout = stdout.replace(/^Type is (.*)\n$/v, '$1');
@@ -638,8 +644,7 @@ function convertReturnType ({returnType, hexAsArrays, stdout}) {
     const parser = new PlistParser({
       plist: stdout, hexAsArrays, allowUnquotedStringsAtRoot: true
     });
-    stdout = parser.start();
-    break;
+    return parser.start();
   }
   default:
     break;
@@ -678,8 +683,7 @@ class MacOSDefaults extends Spawn {
   * To support multiple vs. single object signatures without ambiguity,
   * the values mentioned below must be expressed somewhat differently
   * depending on their position.
-  * @param {import('./typedefs.js').DomainWithHost|
-  *   import('./typedefs.js').Domain|
+  * @param {string|
   *   import('./typedefs.js').PList} domain If a string, is a regular
   *   domain path. To supply a plist to the single-object signature when
   *   it is in string or array form, encapsulate the value within an
@@ -705,6 +709,7 @@ class MacOSDefaults extends Spawn {
   */
   write (domain, plistOrKeyValue, host, host2) {
     let key, value, escapedValueArgs, type, defaultString;
+    /** @type {string[]} */
     const args = [], methodName = 'write';
 
     if (domain && typeof domain === 'object') {
@@ -724,8 +729,11 @@ class MacOSDefaults extends Spawn {
       plistOrKeyValue && typeof plistOrKeyValue === 'object' &&
       'key' in plistOrKeyValue
     ) {
-      const {key, type, value} = plistOrKeyValue;
-      plistOrKeyValue = [key, type ? [type, value] : value];
+      const {key: keyValue, type, value} = plistOrKeyValue;
+      if (typeof keyValue !== 'string') {
+        throw new TypeError('Key must be a string');
+      }
+      plistOrKeyValue = [keyValue, type ? [type, value] : value];
     }
     if (Array.isArray(plistOrKeyValue)) {
       if (plistOrKeyValue.length !== 2) {
@@ -734,7 +742,7 @@ class MacOSDefaults extends Spawn {
       [key, value] = plistOrKeyValue;
       checkKey({key, methodName});
       ([type, escapedValueArgs, defaultString] = reduceValue({
-        value, useUTCDates: this.useUTCDates
+        value
       }));
       plistOrKeyValue = undefined;
     } else if (plistOrKeyValue && typeof plistOrKeyValue === 'object') {
@@ -758,8 +766,7 @@ class MacOSDefaults extends Spawn {
       // Todo: Allow the `write` call to override the config
       plistOrKeyValue = jsToPropertyListXML(value, {
         forceReal: this.forceReal,
-        forceHex: this.forceHex,
-        useUTCDates: this.useUTCDates
+        forceHex: this.forceHex
       });
     } else if (typeof plistOrKeyValue !== 'string' || !plistOrKeyValue) {
       throw new TypeError(
@@ -780,11 +787,16 @@ class MacOSDefaults extends Spawn {
       args.push(quotedPlistOrKeyValue);
       return this.defaults(undefined, ...args);
     }
+    if (!key || typeof key !== 'string') {
+      throw new TypeError('Key must be defined as a string for write');
+    }
     args.push(quoteAndEscapeDoubleQuotes(key));
     if (!defaultString) {
       args.push('-' + type);
     }
-    args.push(...escapedValueArgs);
+    if (escapedValueArgs) {
+      args.push(...escapedValueArgs);
+    }
     return this.defaults(undefined, ...args);
   }
 
@@ -794,7 +806,7 @@ class MacOSDefaults extends Spawn {
   *   import('./typedefs.js').KeyObject)} [domain]
   * @param {string|null} [key]
   * @param {?import('./typedefs.js').Host} [host]
-  * @returns {Promise|
+  * @returns {Promise<import('./typedefs.js').DefaultsResult>|
   *   import('./typedefs.js').DefaultsResult} If not `sync` will return a
   *   `Promise`; otherwise may be any of the other types
   */
@@ -804,6 +816,7 @@ class MacOSDefaults extends Spawn {
         ({key} = domain);
       }
     }
+    /** @type {string[]} */
     const args = [], methodName = 'read';
     const hostAndDomain = checkHostAndDomain({
       domain, host, optionalDomain: true, methodName
@@ -849,14 +862,19 @@ class MacOSDefaults extends Spawn {
         ({key} = domain);
       }
     }
+    /** @type {string[]} */
     const args = [], methodName = 'read-type';
+    if (typeof key !== 'string') {
+      throw new TypeError('Key must be a string for readType');
+    }
     checkKey({key, methodName});
     const hostAndDomain = checkHostAndDomain({
       domain, host, optionalDomain: false, methodName
     });
     addHostMethodAndDomain({args, hostAndDomain, methodName});
     args.push(quoteAndEscapeDoubleQuotes(key));
-    return this.defaults({returnType: 'readType'}, ...args);
+    const result = this.defaults({returnType: 'readType'}, ...args);
+    return /** @type {any} */ (result);
   }
 
   /**
@@ -874,20 +892,26 @@ class MacOSDefaults extends Spawn {
       if ('oldKey' in domain) {
         ({oldKey} = domain);
       } else if ('old_key' in domain) {
-        ({old_key: oldKey} = domain);
+        oldKey = /** @type {any} */ (domain).old_key;
       }
       if ('newKey' in domain) {
         ({newKey} = domain);
       } else if ('new_key' in domain) {
-        ({new_key: newKey} = domain);
+        newKey = /** @type {any} */ (domain).new_key;
       }
     }
 
     /** @type {string[]} */
     const args = [];
     const methodName = 'rename';
-    checkKey({key: /** @type {string} */ (oldKey), methodName});
-    checkKey({key: /** @type {string} */ (newKey), methodName});
+    if (typeof oldKey !== 'string') {
+      throw new TypeError('oldKey must be a string');
+    }
+    if (typeof newKey !== 'string') {
+      throw new TypeError('newKey must be a string');
+    }
+    checkKey({key: oldKey, methodName});
+    checkKey({key: newKey, methodName});
     const hostAndDomain = checkHostAndDomain({
       domain, host, optionalDomain: false, methodName
     });
@@ -903,9 +927,6 @@ class MacOSDefaults extends Spawn {
   * @param {?(import('./typedefs.js').DomainWithHost|
   * import('./typedefs.js').Domain|
   * import('./typedefs.js').KeyDeleteAllObject)} [domain]
-  * @param {boolean} [domain.deleteAll] This required in our API
-  *   to get the potential foot-gun behavior of deleting everything. This
-  *   property is only available through the object API.
   * @param {string|null} [key]
   * @param {?import('./typedefs.js').Host} [host]
   * @returns {Promise<string>|string} The returned or resolved string will
@@ -914,11 +935,12 @@ class MacOSDefaults extends Spawn {
   delete (domain, key, host) {
     let deleteAll = false;
     if (domain && typeof domain === 'object') {
-      deleteAll = Boolean(domain.deleteAll);
+      deleteAll = Boolean(/** @type {any} */ (domain).deleteAll);
       if (!deleteAll && 'key' in domain) {
         ({key} = domain);
       }
     }
+    /** @type {string[]} */
     const args = [], methodName = 'delete';
     const hostAndDomain = checkHostAndDomain({
       domain, host, optionalDomain: deleteAll, methodName
@@ -933,19 +955,29 @@ class MacOSDefaults extends Spawn {
 
   /**
   * @param {?import('./typedefs.js').Host} [host]
-  * @returns {Promise<string>|string[]} The matching domains as an array of strings
+  * @returns {Promise<string[]>|string[]} The matching domains as an array
+  *   of strings
   */
   domains (host) {
+    /** @type {string[]} */
     const args = [], methodName = 'domains';
     const hostOnly = checkHost({host, methodName});
-    addHostMethodAndDomain({args, hostAndDomain: hostOnly, methodName});
-    return this.defaults({returnType: 'commaSeparated'}, ...args);
+    const hostAndDomain =
+      /** @type {import('./typedefs.js').HostAndDomain} */ ({
+        ...hostOnly, globalDomain: false, app: '', domainString: ''
+      });
+    addHostMethodAndDomain({args, hostAndDomain, methodName});
+    const result = this.defaults({returnType: 'commaSeparated'}, ...args);
+    return /** @type {string[]|Promise<string[]>} */ (
+      /** @type {unknown} */ (result)
+    );
   }
   /**
   * @param {string|import('./typedefs.js').WordObject} word The word to find
   * @param {?import('./typedefs.js').Host} [host]
   * @throws {TypeError}
-  * @returns {Promise|import('./typedefs.js').FindResults} Returns or resolves
+  * @returns {Promise<import('./typedefs.js').FindResults>|
+  *   import('./typedefs.js').FindResults} Returns or resolves
   *   to the parsed find results
   */
   find (word, host) {
@@ -956,11 +988,20 @@ class MacOSDefaults extends Spawn {
     if (typeof word !== 'string') {
       throw new TypeError('Find must be supplied a string word argument.');
     }
+    /** @type {string[]} */
     const args = [], methodName = 'find';
     const hostOnly = checkHost({host, methodName});
-    addHostMethodAndDomain({args, hostAndDomain: hostOnly, methodName});
+    const hostAndDomain =
+      /** @type {import('./typedefs.js').HostAndDomain} */ ({
+        ...hostOnly, globalDomain: false, app: '', domainString: ''
+      });
+    addHostMethodAndDomain({args, hostAndDomain, methodName});
     args.push(quoteAndEscapeDoubleQuotes(word));
-    return this.defaults({returnType: 'find'}, ...args);
+    const result = this.defaults({returnType: 'find'}, ...args);
+    // eslint-disable-next-line @stylistic/max-len -- Long
+    return /** @type {import('./typedefs.js').FindResults|Promise<import('./typedefs.js').FindResults>} */ (
+      /** @type {unknown} */ (result)
+    );
   }
 
   /**
@@ -968,9 +1009,13 @@ class MacOSDefaults extends Spawn {
   * @returns {Promise<string>|string} Returns or resolves as the help results
   */
   help (host) {
+    /** @type {string[]} */
     const args = [], methodName = 'help';
     const hostOnly = checkHost({host, methodName});
-    addHostMethodAndDomain({args, hostAndDomain: hostOnly, methodName});
+    const hostAndDomain = /** @type {import('./typedefs.js').HostAndDomain} */ (
+      {...hostOnly, globalDomain: false, app: '', domainString: ''}
+    );
+    addHostMethodAndDomain({args, hostAndDomain, methodName});
     return this.defaults(undefined, ...args);
   }
 
@@ -995,14 +1040,16 @@ class MacOSDefaults extends Spawn {
       }
     }
     const isStream = pathToPlist && typeof pathToPlist === 'object' &&
-      (typeof pathToPlist.pipe === 'function' ||
-      typeof pathToPlist.input === 'string'); // Our custom "stream"
+      (typeof /** @type {any} */ (pathToPlist).pipe === 'function' ||
+      typeof /** @type {any} */ (pathToPlist).input === 'string');
+      // Our custom "stream"
 
     if (!isStream && (typeof pathToPlist !== 'string' || !pathToPlist)) {
       throw new TypeError(
         '`import` must be provided with a path to a plist or -'
       );
     }
+    /** @type {string[]} */
     const args = [], methodName = 'import';
     const hostAndDomain = checkHostAndDomain({
       domain, host, optionalDomain: false, methodName
@@ -1010,11 +1057,14 @@ class MacOSDefaults extends Spawn {
     addHostMethodAndDomain({args, hostAndDomain, methodName});
     if (isStream) {
       args.push('-');
-    } else {
+    } else if (typeof pathToPlist === 'string') {
       args.push(quoteAndEscapeDoubleQuotes(pathToPlist));
     }
     return this.spawn({
-      stream: isStream && pathToPlist,
+      stream: isStream && typeof pathToPlist === 'object'
+        ? /** @type {any} */ (pathToPlist)
+        : undefined,
+      // @ts-expect-error - addStdin is only in spawnAsync but spawn delegates
       addStdin: !this.sync && pathToPlist === '-'
     }, ...args);
   }
@@ -1039,6 +1089,7 @@ class MacOSDefaults extends Spawn {
         '`export` must be provided with a path to a plist or -'
       );
     }
+    /** @type {string[]} */
     const args = [], methodName = 'export';
     const hostAndDomain = checkHostAndDomain({
       domain, host, optionalDomain: false, methodName
@@ -1061,21 +1112,21 @@ class MacOSDefaults extends Spawn {
   }
 
   /**
-   *
-   * @param opts
-   * @param {...any} args
-   * @returns {}
-   */
+  * @param {object} [opts]
+  * @param {...any} args
+  * @returns {Promise<import('./typedefs.js').DefaultsResult>}
+  */
+  // @ts-expect-error - Overriding parent method with broader return type
   spawnAsync (opts, ...args) {
     return super.spawnAsync({cmd: 'defaults', ...opts}, ...args);
   }
 
   /**
-   *
-   * @param opts
-   * @param {...any} args
-   * @returns {}
-   */
+  * @param {object} [opts]
+  * @param {...any} args
+  * @returns {import('./typedefs.js').DefaultsResult}
+  */
+  // @ts-expect-error - Overriding parent method with broader return type
   spawnSync (opts, ...args) {
     return super.spawnSync({cmd: 'defaults', ...opts}, ...args);
   }
@@ -1090,9 +1141,9 @@ class MacOSDefaults extends Spawn {
   */
   defaults (...args) {
     if (this.sync) {
-      return this.defaultsSync(...args);
+      return /** @type {any} */ (this.defaultsSync(...args));
     }
-    return this.defaultsAsync(...args);
+    return /** @type {any} */ (this.defaultsAsync(...args));
   }
 
   /**

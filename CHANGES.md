@@ -9,6 +9,7 @@
     `macOSdefault` to `macOSDefaults`)
 - Breaking change: Complete new API (Promises for async)
 - Breaking change (npm): Drop now unused dependencies
+- Enhancement: TypeScript
 - Enhancement: Allow single options object signature
 - Enhancement: Validate host (host, currentHost, or any host) arguments
 - Enhancement: Validate domain arguments (global, app as domain, path to file)
@@ -51,6 +52,7 @@
 - API (domains): Return/resolve into an array of domains
 - API (find): Return a parsed structure
 - API (import): Allow stream (or pseudo-stream)
+- Fix: Misc. AI fixes
 - Linting (npm): Add `engines` (8.0.0+), `contributors` (also use more typical
     property order)
 - Docs (README): Fix example, use JS syntax highlighting, fix headings
