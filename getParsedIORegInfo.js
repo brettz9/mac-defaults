@@ -1,9 +1,8 @@
-'use strict';
 /** @module getParsedIORegInfo */
 /*
 Good info: https://www.cnet.com/news/about-the-os-x-byhost-preferences-directory/
 */
-const PlistParser = require('./PlistParser.js');
+import PlistParser from './PlistParser.js';
 
 /**
 * Returns results from calls to such as `ioreg -rd1 -c IOPlatformExpertDevice`
@@ -49,8 +48,4 @@ function getParsedIORegInfo (str) {
   }
   return matches;
 }
-if (typeof module !== 'undefined') {
-  module.exports = getParsedIORegInfo;
-} else {
-  window.getParsedIORegInfo = getParsedIORegInfo; // eslint-disable-line no-undef
-}
+export default getParsedIORegInfo;

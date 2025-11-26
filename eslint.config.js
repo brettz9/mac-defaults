@@ -1,0 +1,28 @@
+export default [
+  {
+    ignores: [
+      'docs/jsdoc'
+    ]
+  },
+  {
+    "extends": "eslint:recommended",
+    "parserOptions": {
+      "ecmaVersion": 2017,
+      "sourceType": "module"
+    },
+    "env": {
+      "node": true,
+      "es6": true
+    },
+    "rules": {
+      "semi": [2, "always"],
+      "indent": ["error", 2, {"outerIIFEBody": 0}],
+      "object-property-newline": 0,
+      "one-var": 0,
+      "no-var": 2,
+      "prefer-const": 2,
+      "no-extra-semi": 2,
+      "quotes": ["error", "single", {"allowTemplateLiterals": true, "avoidEscape": true}]
+    }
+  }
+];

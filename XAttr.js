@@ -1,4 +1,4 @@
-const Spawn = require('./Spawn.js');
+import Spawn from './Spawn.js';
 
 class XAttr extends Spawn {
   // Todo: Make a genuine parser
@@ -21,4 +21,4 @@ class XAttr extends Spawn {
   }
 }
 
-module.exports = XAttr;
+export default XAttr;

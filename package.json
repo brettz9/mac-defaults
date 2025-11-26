@@ -7,6 +7,7 @@
     "Brett Zamir <brettz9@yahoo.com> (http://brett-zamir.me)"
   ],
   "license": "MIT",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "jsdoc": "jsdoc --private --pedantic --configure jsdoc.conf.json . README.md package.json",
@@ -50,13 +51,8 @@
   "dependencies": {
     "get-stream": "^6.0.1"
   },
-  "ava": {
-    "require": [
-      "esm"
-    ]
-  },
   "devDependencies": {
-    "ava": "^3.15.0",
+    "ava": "^6.4.1",
     "eslint": "^7.24.0",
     "esm": "^3.2.25",
     "jsdoc": "^3.6.6"

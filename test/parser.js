@@ -1,6 +1,4 @@
 /* eslint-disable no-console, no-unused-vars, quotes */
-'use strict';
-
 import test from 'ava';
 import Parser from '../PlistParser.js';
 

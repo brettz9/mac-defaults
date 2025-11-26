@@ -12,11 +12,10 @@
 
 // Todo: Support Node `Buffer`s as well as `Uint8Array`?
 
-'use strict';
-const {spawn, spawnSync} = require('child_process');
+import {spawn, spawnSync} from 'node:child_process';
 
-const PlistParser = require('./PlistParser.js');
-const Spawn = require('./Spawn.js');
+import PlistParser from './PlistParser.js';
+import Spawn from './Spawn.js';
 
 const allowedTypes = [
   'string', 'data', 'integer', 'float', 'boolean',
@@ -118,7 +117,7 @@ const toISOString = (date) => {
 * @throws {TypeError}
 * @returns {string}
 */
-exports.jsToPropertyListXML = function (value, cfg = {}) {
+export const jsToPropertyListXML = function (value, cfg = {}) {
   // Have Typed Array treat as data (hex) (which is
   //   e.g., <0fbd>; note: also allows optional whitespace inside)
   if (cfg.forceHex && typeof value === 'string') {
@@ -181,8 +180,6 @@ exports.jsToPropertyListXML = function (value, cfg = {}) {
   throw new TypeError('Unrecognized type, ' + type + ', cannot be converted to XML property list item.');
 };
 
-const jsToPropertyListXML = exports.jsToPropertyListXML;
-
 /**
 * Not in use internally.
 * Adapts {@link https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/PropertyLists/OldStylePlists/OldStylePLists.html#//apple_ref/doc/uid/20001012-BBCBDBJE}
@@ -205,7 +202,7 @@ console.log(
   })
 );
 */
-exports.jsToAsciiPropertyList = function jsToAsciiPropertyList (value) {
+export const jsToAsciiPropertyList = function jsToAsciiPropertyList (value) {
   if (['string', 'number'].includes(typeof value)) {
     // If empty, we need to stringify so insist on 1+ chars here
     if ((/^\w+$/).test(String(value))) {
@@ -500,7 +497,7 @@ function checkHostAndDomain ({domain, host, methodName, optionalDomain}) {
 * @property {boolean} [cfg.json=false] Whether to force the parsed results as JSON (or allow Uint8Arrays for hex)
 * @returns {FindResults} Returns an array of results or a single object with an `error` property set to the parser error
 */
-exports.parseFindResults = function parseFindResults (findString, {json = false} = {}) {
+export const parseFindResults = function parseFindResults (findString, {json = false} = {}) {
   findString = findString.trim();
   const results = [];
   const foundKeysDomain = /(?:^|\n)Found (\d+) keys in domain '([^']+)':([\s\S]+?)(?=\n\w|\s*$)/g;
@@ -523,7 +520,6 @@ exports.parseFindResults = function parseFindResults (findString, {json = false}
     };
   }
 };
-const parseFindResults = exports.parseFindResults;
 
 /**
 * @private
@@ -984,4 +980,4 @@ class MacOSDefaults extends Spawn {
   }
 }
 
-exports.MacOSDefaults = MacOSDefaults;
+export {MacOSDefaults};

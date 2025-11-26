@@ -1,7 +1,5 @@
-'use strict';
-
-const {spawn, spawnSync} = require('child_process');
-const getStream = require('get-stream');
+import {spawn, spawnSync} from 'node:child_process';
+import getStream from 'get-stream';
 
 /* eslint-disable no-console */
 class Spawn {
@@ -149,4 +147,4 @@ class Spawn {
   }
 }
 
-module.exports = Spawn;
+export default Spawn;

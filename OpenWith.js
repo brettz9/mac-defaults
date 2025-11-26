@@ -1,4 +1,4 @@
-const XAttr = require('./XAttr.js');
+import XAttr from './XAttr.js';
 
 class OpenWith extends XAttr {
   static parse (str) {
@@ -22,4 +22,4 @@ class OpenWith extends XAttr {
   }
 }
 
-module.exports = OpenWith;
+export default OpenWith;

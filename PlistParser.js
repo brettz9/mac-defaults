@@ -1,4 +1,3 @@
-'use strict';
 // Todo: Compare with https://github.com/chobie/php-plist/blob/master/plist.php
 // Todo: Handle comments within as per the above?
 // Todo: Support optional date parsing
@@ -385,4 +384,4 @@ class PlistParser {
   }
 }
 
-module.exports = PlistParser;
+export default PlistParser;

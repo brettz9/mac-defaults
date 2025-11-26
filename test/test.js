@@ -1,12 +1,13 @@
-'use strict';
-
 import test from 'ava';
-import {MacOSDefaults, jsToPropertyListXML} from '../';
+import {MacOSDefaults, jsToPropertyListXML} from '../index.js';
+import getParsedIORegInfo from '../getParsedIORegInfo.js';
 
-import {execSync} from 'child_process';
-import {createReadStream, existsSync, unlinkSync, readFileSync, copyFileSync} from 'fs';
-import {homedir} from 'os';
-import {join} from 'path';
+import {execSync} from 'node:child_process';
+import {createReadStream, existsSync, unlinkSync, readFileSync, copyFileSync} from 'node:fs';
+import {homedir} from 'node:os';
+import {join} from 'node:path';
+
+const __dirname = import.meta.dirname;
 
 function escapeDoubleQuotes (val) {
   return '"' + val.replace(/`/g, '\\"') + '"';
@@ -80,9 +81,6 @@ const expectedXML9 = `<?xml version="1.0" encoding="UTF-8"?>
 </dict>
 </plist>
 `;
-
-
-const getParsedIORegInfo = require('../getParsedIORegInfo.js');
 
 // Get hostname
 const ioInfoString = execSync('ioreg -rd1 -c IOPlatformExpertDevice', {encoding: 'utf-8'});
