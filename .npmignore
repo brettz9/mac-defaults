@@ -1,8 +1,8 @@
 ignore
 test
+coverage
 docs
 jsdoc.conf.json
 typedefs.js
-.eslintignore
-.eslintrc
-.remarkrc
+eslint.config.js
+

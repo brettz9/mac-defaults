@@ -963,7 +963,11 @@ class MacOSDefaults extends Spawn {
     if (this.log) {
       console.log('args', args);
     }
-    const proc = spawnSync('defaults', args, {shell: true, encoding: 'utf-8'});
+    const proc = spawnSync('defaults', args, {
+      shell: true,
+      encoding: 'utf-8',
+      maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large outputs like 'defaults find'
+    });
     if (proc.error) {
       const err = new Error(proc.error);
       err.code = proc.status;

@@ -198,14 +198,61 @@ class PlistParser {
         ch = this.plist[++this.i];
       }
     } else {
-      while (ch && (/\w/).test(ch)) {
-        str += ch;
-        ch = this.plist[++this.i];
+      // Check if this is hex data format: 0xHEXHEX HEXHEX ...
+      const isHexData = this.plist[this.i] === '0' && this.plist[this.i + 1] === 'x';
+      if (isHexData) {
+        // Parse hex data: 0xHEXHEX HEXHEX HEXHEX ... (including ellipsis)
+        // Include 0x prefix, hex digits, spaces, and periods, but stop at delimiters
+        while (ch && (/[0-9a-fx\s.]/i).test(ch) && ch !== ';' && ch !== ',' && ch !== '}' && ch !== ')') {
+          str += ch;
+          ch = this.plist[++this.i];
+        }
+        // Trim trailing whitespace from hex data
+        str = str.trimEnd();
+      } else {
+        while (ch && (/\w/).test(ch)) {
+          str += ch;
+          ch = this.plist[++this.i];
+        }
       }
     }
     if (startQuote) {
       ch = this.plist[++this.i];
       if (this.allowAngledBracketStrings && hexString) {
+        // Handle array-like format inside angled brackets: <"str1","str2","str3">
+        while (ch === ',') {
+          this.i++; // skip comma
+          ch = this.plist[this.i];
+          if (ch === '"' || ch === "'") {
+            str += ',';
+            const quoteChar = ch;
+            let innerCh = this.plist[++this.i];
+            while (true) {
+              if (!innerCh) {
+                throw new RangeError('Unexpected end of quoted string at offset ' + this.i);
+              }
+              if (innerCh === quoteChar) {
+                break;
+              }
+              if (innerCh === '\\') {
+                innerCh = this.plist[++this.i];
+                if (!innerCh) {
+                  throw new RangeError('Unexpected end of quoted string (after backslash) at offset ' + this.i);
+                }
+                if (innerCh === '\\') {
+                  innerCh = this.plist[++this.i];
+                } else if (innerCh !== quoteChar) {
+                  str += '\\';
+                }
+              }
+              str += innerCh;
+              innerCh = this.plist[++this.i];
+            }
+            ch = this.plist[++this.i];
+          } else {
+            break;
+          }
+        }
         if (!ch) {
           throw new RangeError(
             'Premature end to angled bracket string (no closing bracket)'
@@ -276,14 +323,27 @@ class PlistParser {
       return;
     }
     case ',': {
-      if (mode !== 'array') {
-        throw new TypeError('Unexpected comma during non-array mode ' + mode + '; at index ' + this.i);
+      if (mode === 'array') {
+        this.i++;
+        this.incrementCurrentParentItemCount();
+        this.check();
+        // Todo: Should we throw upon repeating ','?
+        return;
+      } else if (mode === 'dict') {
+        // Allow commas in dicts for NSData format: {length = 32, bytes = 0x...}
+        this.i++;
+        this.incrementCurrentParentItemCount();
+        ch = this.advanceWhitespace();
+        if (!ch) {
+          throw new RangeError(
+            'Premature end to dict (after comma)'
+          );
+        }
+        this.check();
+        return;
+      } else {
+        throw new TypeError('Unexpected comma during non-array/non-dict mode ' + mode + '; at index ' + this.i);
       }
-      this.i++;
-      this.incrementCurrentParentItemCount();
-      this.check();
-      // Todo: Should we throw upon repeating ','?
-      return;
     }
     case ';': {
       if (mode !== 'dict') {

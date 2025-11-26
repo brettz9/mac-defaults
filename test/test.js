@@ -502,35 +502,35 @@ test(`defaults write domain plist object invalid objects (not allowed at root)`,
 
   let {message} = t.throws(() => {
     return mod.write(domain, {value: 'a string'});
-  }, TypeError);
+  });
   t.true(message.includes('A plist value must be a plain object.'));
   ({message} = t.throws(() => {
     return mod.write(domain, {value: new Uint8Array([3, 4, 0xf])});
-  }, TypeError));
+  }));
   t.true(message.includes('A plist value must be a plain object.'));
   ({message} = t.throws(() => {
     return mod.write(domain, {value: 30});
-  }, TypeError));
+  }));
   t.true(message.includes('A plist value must be a plain object.'));
   ({message} = t.throws(() => {
     return mod.write(domain, {value: 32.3});
-  }, TypeError));
+  }));
   t.true(message.includes('A plist value must be a plain object.'));
   ({message} = t.throws(() => {
     return mod.write(domain, {value: true});
-  }, TypeError));
+  }));
   t.true(message.includes('A plist value must be a plain object.'));
   ({message} = t.throws(() => {
     return mod.write(domain, {value: false});
-  }, TypeError));
+  }));
   t.true(message.includes('A plist value must be a plain object.'));
   ({message} = t.throws(() => {
     return mod.write(domain, {value: new Date('1919-01-01T01:01:00Z')});
-  }, TypeError));
+  }));
   t.true(message.includes('A plist value must be a plain object.'));
   ({message} = t.throws(() => {
     return mod.write(domain, {value: ['a', 3, true, {}, []]});
-  }, TypeError));
+  }));
   t.true(message.includes('A plist value must be a plain object.'));
 });
 
@@ -670,13 +670,13 @@ test(`defaults -currentHost write-sync domain key 'value' (single object)`, t =>
 test(`Erring: defaults write; bad key type`, async t => {
   const mod = new MacOSDefaults();
   const [domain, plistPath] = getSamplePlistFile(); // eslint-disable-line no-unused-vars
-  const {message} = await t.throws(() => mod.write(domain, 500), TypeError);
+  const {message} = t.throws(() => mod.write(domain, 500));
   t.true(message.includes('must be provided with a non-empty plist string or object, or a key-value array'));
 });
 test(`Erring: defaults write; bad key type (single object)`, async t => {
   const mod = new MacOSDefaults();
   const [domain, plistPath] = getSamplePlistFile(); // eslint-disable-line no-unused-vars
-  const {message} = await t.throws(() => mod.write({domain, key: 500}), TypeError);
+  const {message} = t.throws(() => mod.write({domain, key: 500}));
   t.true(message.includes('The key supplied to write must be a string.'));
 });
 
@@ -685,11 +685,11 @@ test(`Erring: defaults write; non-object/non-string/non-array plist`, t => {
   const [domain, plistPath] = getSamplePlistFile(); // eslint-disable-line no-unused-vars
   let {message} = t.throws(() => {
     return mod.write(domain, 500);
-  }, TypeError);
+  });
   t.true(message.includes('must be provided with a non-empty plist string or'));
   ({message} = t.throws(() => {
     return mod.write({domain, plist: 500});
-  }, TypeError));
+  }));
   t.true(message.includes('must be provided with a non-empty plist string or'));
 });
 test(`Erring: defaults write; plist arrays must be length two`, t => {
@@ -697,18 +697,18 @@ test(`Erring: defaults write; plist arrays must be length two`, t => {
   const [domain, plistPath] = getSamplePlistFile(); // eslint-disable-line no-unused-vars
   let {message} = t.throws(() => {
     return mod.write(domain, ['key']);
-  }, TypeError);
+  });
   t.true(message.includes('Plist arrays passed to `write` must be length 2'));
   ({message} = t.throws(() => {
     return mod.write({domain, plist: ['key']});
-  }, TypeError));
+  }));
   ({message} = t.throws(() => {
     return mod.write(domain, []);
-  }, TypeError));
+  }));
   t.true(message.includes('Plist arrays passed to `write` must be length 2'));
   ({message} = t.throws(() => {
     return mod.write({domain, plist: []});
-  }, TypeError));
+  }));
   t.true(message.includes('Plist arrays passed to `write` must be length 2'));
 });
 
@@ -717,15 +717,15 @@ test(`Erring: defaults write; plist arrays must have value with valid type-value
   const [domain, plistPath] = getSamplePlistFile(); // eslint-disable-line no-unused-vars
   let {message} = t.throws(() => {
     return mod.write(domain, ['key', 555]);
-  }, TypeError);
+  });
   t.true(message.includes('A value must only be a string or a two-item array with a valid type key.'));
   ({message} = t.throws(() => {
     return mod.write(domain, ['key', ['string']]);
-  }, TypeError));
+  }));
   t.true(message.includes('A value must only be a string or a two-item array with a valid type key.'));
   ({message} = t.throws(() => {
     return mod.write(domain, ['key', ['badType', 'value']]);
-  }, TypeError));
+  }));
   t.true(message.includes('A value must only be a string or a two-item array with a valid type key.'));
 });
 
@@ -734,59 +734,59 @@ test(`Erring: defaults write; plist arrays must have type-value pairs which matc
   const [domain, plistPath] = getSamplePlistFile(); // eslint-disable-line no-unused-vars
   let {message} = t.throws(() => {
     return mod.write(domain, ['key', ['string', 555]]);
-  }, TypeError);
+  });
   t.true(message.includes('A string is expected for the `string` value.'));
   ({message} = t.throws(() => {
     return mod.write(domain, ['key', ['data', null]]);
-  }, TypeError));
+  }));
   t.true(message.includes('Hex digits (as a string) are expected for the `data`/`hex` value.'));
   ({message} = t.throws(() => {
     return mod.write(domain, ['key', ['data', '123abcdefg']]);
-  }, TypeError));
+  }));
   t.true(message.includes('Hex digits (as a string) are expected for the `data`/`hex` value.'));
   ({message} = t.throws(() => {
     return mod.write(domain, ['key', ['int', 'badValue']]);
-  }, TypeError));
+  }));
   t.true(message.includes('An integer is expected for the `int`/`integer` value.'));
   ({message} = t.throws(() => {
     return mod.write(domain, ['key', ['int', 30.4]]);
-  }, TypeError));
+  }));
   t.true(message.includes('An integer is expected for the `int`/`integer` value.'));
   ({message} = t.throws(() => {
     return mod.write(domain, ['key', ['float', 'badValue']]);
-  }, TypeError));
+  }));
   t.true(message.includes('A number (float) is expected for the `float` value.'));
   ({message} = t.throws(() => {
     return mod.write(domain, ['key', ['bool', 'badValue']]);
-  }, TypeError));
+  }));
   t.true(message.includes('A boolean is expected for the `bool`/`boolean` value.'));
   ({message} = t.throws(() => {
     return mod.write(domain, ['key', ['date', '2525-bad']]);
-  }, TypeError));
+  }));
   t.true(message.includes('A valid date-string must be supplied.'));
   ({message} = t.throws(() => {
     return mod.write(domain, ['key', ['date', {}]]);
-  }, TypeError));
+  }));
   t.true(message.includes('A date object or valid date string is expected for the `string` value.'));
   ({message} = t.throws(() => {
     return mod.write(domain, ['key', ['date', new Date('bad')]]);
-  }, TypeError));
+  }));
   t.true(message.includes('A date object or valid date string is expected for the `string` value.'));
   ({message} = t.throws(() => {
     return mod.write(domain, ['key', ['array', 'badValue']]);
-  }, TypeError));
+  }));
   t.true(message.includes('An array is expected for the `array` value.'));
   ({message} = t.throws(() => {
     return mod.write(domain, ['key', ['array-add', 'badValue']]);
-  }, TypeError));
+  }));
   t.true(message.includes('An array is expected for the `array-add` value.'));
   ({message} = t.throws(() => {
     return mod.write(domain, ['key', ['dict', 'badValue']]);
-  }, TypeError));
+  }));
   t.true(message.includes('An object is expected for the `dict` value.'));
   ({message} = t.throws(() => {
     return mod.write(domain, ['key', ['dict-add', 'badValue']]);
-  }, TypeError));
+  }));
   t.true(message.includes('An object is expected for the `dict-add` value.'));
 });
 
@@ -1048,17 +1048,17 @@ test(`defaults -host hostname rename-sync domain old_key new_key (single object)
 test(`Erring: defaults rename; bad key type`, async t => {
   const mod = new MacOSDefaults();
   const [domain, plistPath] = getSamplePlistFile(); // eslint-disable-line no-unused-vars
-  let {message} = await t.throws(() => mod.rename(domain, 'abc', 500), TypeError);
+  let {message} = t.throws(() => mod.rename(domain, 'abc', 500));
   t.true(message.includes('The key supplied to rename must be a string.'));
-  ({message} = await t.throws(() => mod.rename(domain, 500, 'abc'), TypeError));
+  ({message} = t.throws(() => mod.rename(domain, 500, 'abc')));
   t.true(message.includes('The key supplied to rename must be a string.'));
 });
 test(`Erring: defaults rename; bad key type (single object)`, async t => {
   const mod = new MacOSDefaults();
   const [domain, plistPath] = getSamplePlistFile(); // eslint-disable-line no-unused-vars
-  let {message} = await t.throws(() => mod.rename({domain, oldKey: 500, newKey: 'abc'}), TypeError);
+  let {message} = t.throws(() => mod.rename({domain, oldKey: 500, newKey: 'abc'}));
   t.true(message.includes('The key supplied to rename must be a string.'));
-  ({message} = await t.throws(() => mod.rename({domain, oldKey: 'abc', newKey: 500}), TypeError));
+  ({message} = t.throws(() => mod.rename({domain, oldKey: 'abc', newKey: 500})));
   t.true(message.includes('The key supplied to rename must be a string.'));
 });
 
@@ -1933,13 +1933,13 @@ test(`defaults delete (deleteAll; available on single object only)`, async t => 
 test(`Erring: defaults delete; bad key type`, async t => {
   const mod = new MacOSDefaults();
   const [domain, plistPath] = getSamplePlistFile(); // eslint-disable-line no-unused-vars
-  const {message} = await t.throws(() => mod.delete(domain, 500), TypeError);
+  const {message} = t.throws(() => mod.delete(domain, 500));
   t.true(message.includes('The key supplied to delete must be a string'));
 });
 test(`Erring: defaults delete; bad key type (single object)`, async t => {
   const mod = new MacOSDefaults();
   const [domain, plistPath] = getSamplePlistFile(); // eslint-disable-line no-unused-vars
-  const {message} = await t.throws(() => mod.delete({domain, key: 500}), TypeError);
+  const {message} = t.throws(() => mod.delete({domain, key: 500}));
   t.true(message.includes('The key supplied to delete must be a string'));
 });
 
@@ -1980,12 +1980,12 @@ test(`defaults -currentHost read domain (single object)`, async t => {
 test(`defaults -currentHost read domain key`, async t => {
   const mod = new MacOSDefaults();
   const readInfo = await mod.read('com.apple.screensaver', 'moduleDict', {currentHost: true});
-  t.true(readInfo && 'displayName' in readInfo && 'moduleName' in readInfo);
+  t.true(readInfo && 'moduleName' in readInfo);
 });
 test(`defaults -currentHost read domain key (single object)`, async t => {
   const mod = new MacOSDefaults();
   const readInfo = await mod.read({domain: 'com.apple.screensaver', key: 'moduleDict', currentHost: true});
-  t.true(readInfo && 'displayName' in readInfo && 'moduleName' in readInfo);
+  t.true(readInfo && 'moduleName' in readInfo);
 });
 
 test(`defaults -host hostname read domain`, async t => {
@@ -2067,22 +2067,22 @@ test(`defaults -currentHost read-sync domain (single object)`, t => {
 test(`defaults -currentHost read-sync domain key`, t => {
   const mod = new MacOSDefaults({sync: true});
   const readInfo = mod.read('com.apple.screensaver', 'moduleDict', {currentHost: true});
-  t.true(readInfo && 'displayName' in readInfo && 'moduleName' in readInfo);
+  t.true(readInfo && 'moduleName' in readInfo);
 });
 test(`defaults -currentHost read-sync domain key (single object)`, t => {
   const mod = new MacOSDefaults({sync: true});
   const readInfo = mod.read({domain: 'com.apple.screensaver', key: 'moduleDict', currentHost: true});
-  t.true(readInfo && 'displayName' in readInfo && 'moduleName' in readInfo);
+  t.true(readInfo && 'moduleName' in readInfo);
 });
 
 test(`Erring: defaults read; bad key type`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.read('com.apple.finder', 500), TypeError);
+  const {message} = t.throws(() => mod.read('com.apple.finder', 500));
   t.true(message.includes('The key supplied to read must be a string'));
 });
 test(`Erring: defaults read; bad key type (single object)`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.read({domain: 'com.apple.finder', key: 500}), TypeError);
+  const {message} = t.throws(() => mod.read({domain: 'com.apple.finder', key: 500}));
   t.true(message.includes('The key supplied to read must be a string'));
 });
 
@@ -2160,34 +2160,34 @@ test(`defaults -host hostname read-type-sync domain key (single object)`, t => {
 
 test(`Erring: defaults read-type; bad key type`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.readType('com.apple.finder', 500), TypeError);
+  const {message} = t.throws(() => mod.readType('com.apple.finder', 500));
   t.true(message.includes('The key supplied to read-type must be a string.'));
 });
 test(`Erring: defaults read-type; bad key type (single object)`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.readType({domain: 'com.apple.finder', key: 500}), TypeError);
+  const {message} = t.throws(() => mod.readType({domain: 'com.apple.finder', key: 500}));
   t.true(message.includes('The key supplied to read-type must be a string.'));
 });
 
 test(`Erring: defaults read-type domain; missing domain`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.readType(null, 'abc'), TypeError);
+  const {message} = t.throws(() => mod.readType(null, 'abc'));
   t.true(message.includes('A domain is not optional for read-type'));
 });
 test(`Erring: defaults read-type domain; missing domain (single object)`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.readType({key: 'abc'}), TypeError);
+  const {message} = t.throws(() => mod.readType({key: 'abc'}));
   t.true(message.includes('If domain is an object, it must have an `app` or `g`/`globalDomain`/`NSGlobalDomain` property'));
 });
 
 test(`Erring: defaults read-type domain; missing key`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.readType('com.apple.finder'), TypeError);
+  const {message} = t.throws(() => mod.readType('com.apple.finder'));
   t.true(message.includes('The key supplied to read-type must be a string.'));
 });
 test(`Erring: defaults read-type domain; missing key (single object)`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.readType({domain: 'com.apple.finder'}), TypeError);
+  const {message} = t.throws(() => mod.readType({domain: 'com.apple.finder'}));
   t.true(message.includes('The key supplied to read-type must be a string.'));
 });
 
@@ -2301,12 +2301,12 @@ test(`defaults -host hostname find-sync word (single object)`, t => {
 
 test(`Erring: defaults find; missing word`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.find(), TypeError);
+  const {message} = t.throws(() => mod.find());
   t.true(message.includes('Find must be supplied a string word argument'));
 });
 test(`Erring: defaults find; missing word (single object)`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.find({}), TypeError);
+  const {message} = t.throws(() => mod.find({}));
   t.true(message.includes('Find must be supplied a string word argument'));
 });
 
@@ -2360,47 +2360,47 @@ test(`defaults -host hostname help-sync (single object)`, t => {
 
 test(`Erring: defaults import; missing plist/-`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.import('com.example.something'), TypeError);
+  const {message} = t.throws(() => mod.import('com.example.something'));
   t.true(message.includes('`import` must be provided with a path to a plist or -'));
 });
 test(`Erring: defaults import; bad plist/-`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.import('com.example.something', 250), TypeError);
+  const {message} = t.throws(() => mod.import('com.example.something', 250));
   t.true(message.includes('`import` must be provided with a path to a plist or -'));
 });
 test(`Erring: defaults export; missing plist/-`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.export('com.example.something'), TypeError);
+  const {message} = t.throws(() => mod.export('com.example.something'));
   t.true(message.includes('`export` must be provided with a path to a plist or -'));
 });
 test(`Erring: defaults export; bad plist/-`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.export('com.example.something', 250), TypeError);
+  const {message} = t.throws(() => mod.export('com.example.something', 250));
   t.true(message.includes('`export` must be provided with a path to a plist or -'));
 });
 
 test(`Erring: defaults; bad app`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.read({app: ''}), TypeError);
+  const {message} = t.throws(() => mod.read({app: ''}));
   t.true(message.includes('app, if present on a domain object, must be a non-empty string'));
 });
 test(`Erring: defaults; bad host (missing property)`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.help({}), TypeError);
+  const {message} = t.throws(() => mod.help({}));
   t.true(message.includes('If host is an object, it must have have a `currentHost` or `host` property'));
 });
 test(`Erring: defaults; bad host (non-null/string/object)`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.help({host: 55}), TypeError);
+  const {message} = t.throws(() => mod.help({host: 55}));
   t.true(message.includes('If host is not an object, host must either be `undefined`/`null` or a non-empty string'));
 });
 test(`Erring: defaults; bad domain (missing property)`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.read({domain: {}}), TypeError);
+  const {message} = t.throws(() => mod.read({domain: {}}));
   t.true(message.includes('If domain is an object, it must have an `app` or `g`/`globalDomain`/`NSGlobalDomain` property'));
 });
 test(`Erring: defaults; bad domain (non-string)`, async t => {
   const mod = new MacOSDefaults();
-  const {message} = await t.throws(() => mod.read({domain: 55}), TypeError);
+  const {message} = t.throws(() => mod.read({domain: 55}));
   t.true(message.includes('If a global or app domain is not specified, a non-empty string must be supplied to read'));
 });

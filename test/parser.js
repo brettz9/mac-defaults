@@ -281,12 +281,12 @@ test("Erring: Missing value within dict", t => {
 });
 
 test("Erring: Unexpected array comma within dict", t => {
+  // Note: Commas are now allowed in dicts for NSData format {length = 32, bytes = ...}
+  // This test now verifies that trailing commas are handled gracefully
   const plist = `{a = b,}`;
   const parser = new Parser({plist});
-  const {message} = t.throws(() => {
-    const result = parser.start();
-  }, {instanceOf: TypeError});
-  t.true(message.includes('Unexpected comma during non-array mode'));
+  const result = parser.start();
+  t.deepEqual(result, {a: 'b'});
 });
 
 test("Erring: Unexpected dict semi-colon within array", t => {
