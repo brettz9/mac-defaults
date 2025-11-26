@@ -9,9 +9,16 @@
   "license": "MIT",
   "type": "module",
   "main": "index.js",
+  "exports": {
+    "import": "./index.js",
+    "require": "./dist/index.cjs"
+  },
   "scripts": {
     "jsdoc": "jsdoc --private --pedantic --configure jsdoc.conf.json . README.md package.json",
     "eslint": "eslint .",
+    "lint": "npm run eslint --",
+    "rollup": "rollup -c",
+    "attw": "attw --pack",
     "test": "c8 ava --concurrency=4 --timeout=60s",
     "test-main": "ava test/test.js --concurrency=4 --timeout=60s",
     "test-parser": "ava test/parser.js"
@@ -52,10 +59,12 @@
     "get-stream": "^6.0.1"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.2",
     "ava": "^6.4.1",
     "c8": "^10.1.3",
     "eslint": "^7.24.0",
     "esm": "^3.2.25",
-    "jsdoc": "^3.6.6"
+    "jsdoc": "^3.6.6",
+    "rollup": "^4.53.3"
   }
 }
